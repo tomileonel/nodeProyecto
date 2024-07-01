@@ -1,4 +1,4 @@
-import RecetasRepository from '../repositories/recetas-repository';
+import RecetasRepository from '../repositories/recetas-repository.js';
 
 export default class RecetasService {
   constructor() {

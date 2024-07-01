@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import RecetasService from '../services/recetas-service';
+import RecetasService from '../services/recetas-service.js';
 
 const router = Router();
 const recetasService = new RecetasService();
@@ -15,9 +15,9 @@ router.get('/byTag/:userId', async (req, res) => {
 });
 
 router.get('/search', async (req, res) => {
-  const { userId, tipoCocina, ingredientes, maxCalorias, maxTiempo } = req.query;
+  const {tipoCocina, ingredientes, maxCalorias, maxTiempo } = req.query;
   try {
-    const [recipes, status] = await recetasService.searchRecipes(userId, tipoCocina, ingredientes, maxCalorias, maxTiempo);
+    const [recipes, status] = await recetasService.searchRecipes(tipoCocina, ingredientes, maxCalorias, maxTiempo);
     res.status(status).json(recipes);
   } catch (error) {
     res.status(500).json({ error: error.message });

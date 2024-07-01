@@ -1,84 +1,111 @@
-import { Client } from 'pg';
-import dbConfig from '../configs/db-config.js';
+import sql from 'mssql';
+import getConnection from '../configs/db-config.js';
 
 export default class RecetasRepository {
   async getUserTags(userId) {
-    const client = new Client(dbConfig);
-    await client.connect();
-
+    let pool;
     try {
-      const res = await client.query('SELECT tags FROM usuarios WHERE id = $1', [userId]);
-      return res.rows[0].tags;
+      pool = await getConnection();
+      const result = await pool.request()
+        .input('userId', sql.Int, userId)
+        .query(`
+          SELECT TU.idTag 
+          FROM usuarios 
+          JOIN TagUsuario as TU on TU.idUsuario = usuarios.id
+          WHERE usuarios.id = @userId
+        `);
+      return result.recordset.map(record => record.idTag);
     } finally {
-      await client.end();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 
   async getRecipesByTag(userTags) {
-    const client = new Client(dbConfig);
-    await client.connect();
-
+    let pool;
     try {
-      const recipes = await client.query('SELECT * FROM recetas WHERE tags && $1', [userTags]);
-      return recipes.rows;
+      pool = await getConnection();
+      const userTagsString = userTags.join(',');
+      const result = await pool.request()
+        .input('userTags', sql.NVarChar(sql.MAX), `%${userTagsString}%`)
+        .query(`
+          SELECT r.* 
+          FROM recetas r 
+          JOIN TagRecetas as TR on TR.idReceta = r.id
+          WHERE TR.idTag LIKE @userTags
+        `);
+      return result.recordset;
     } finally {
-      await client.end();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 
   async searchRecipes(userTags, tipoCocina, ingredientes, maxCalorias, maxTiempo) {
-    const client = new Client(dbConfig);
-    await client.connect();
-
-    let query = 'SELECT r.* FROM recetas r WHERE r.tags && $1';
-    let queryParams = [userTags];
-
-    if (tipoCocina) {
-      query += ' AND r.tipo_cocina = ANY($2)';
-      queryParams.push(tipoCocina);
-    }
-
-    if (ingredientes) {
-      query +=
-        ' AND r.id IN (' +
-        'SELECT ri.receta_id FROM receta_ingredientes ri ' +
-        'INNER JOIN ingredientes i ON i.id = ri.ingrediente_id ' +
-        'WHERE i.nombre = ANY($3)' +
-        ')';
-      queryParams.push(ingredientes);
-    }
-
-    if (maxCalorias) {
-      query += ' AND r.calorias <= $4';
-      queryParams.push(maxCalorias);
-    }
-
-    if (maxTiempo) {
-      query += ' AND r.tiempo <= $5';
-      queryParams.push(maxTiempo);
-    }
-
+    let pool;
     try {
-      const recipes = await client.query(query, queryParams);
-      return recipes.rows;
+      pool = await getConnection();
+
+      let query = 'SELECT r.* FROM recetas r WHERE 1=1';
+      const request = pool.request();
+
+      if (tipoCocina) {
+        query += ' AND r.tipo_cocina IN (@tipoCocina)';
+        request.input('tipoCocina', sql.NVarChar(sql.MAX), tipoCocina);
+      }
+
+      if (ingredientes) {
+        query += `
+          AND r.id IN (
+            SELECT ri.receta_id FROM receta_ingredientes ri 
+            JOIN ingredientes i ON i.id = ri.ingrediente_id 
+            WHERE i.nombre IN (@ingredientes)
+          )
+        `;
+        request.input('ingredientes', sql.NVarChar(sql.MAX), ingredientes);
+      }
+
+      if (maxCalorias) {
+        query += ' AND r.calorias <= @maxCalorias';
+        request.input('maxCalorias', sql.Int, maxCalorias);
+      }
+
+      if (maxTiempo) {
+        query += ' AND r.tiempo <= @maxTiempo';
+        request.input('maxTiempo', sql.Int, maxTiempo);
+      }
+
+      const result = await request.query(query);
+      return result.recordset;
     } finally {
-      await client.end();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 
   async getLatestRecipes(userTags) {
-    const client = new Client(dbConfig);
-    await client.connect();
-
+    let pool;
     try {
-      const recipes = await client.query(
-        'SELECT r.* FROM recetas r WHERE r.tags && $1 AND r.puntuacion > 4.5 ' +
-          'ORDER BY r.fechaPublicacion DESC LIMIT 10',
-        [userTags]
-      );
-      return recipes.rows;
+      pool = await getConnection();
+      const userTagsString = userTags.join(',');
+      const result = await pool.request()
+        .input('userTags', sql.NVarChar(sql.MAX), `%${userTagsString}%`)
+        .query(`
+          SELECT r.* 
+          FROM recetas r 
+          JOIN TagRecetas as TR on TR.idReceta = r.id
+          WHERE TR.idTag LIKE @userTags AND r.puntuacion > 4.5 
+          ORDER BY r.fechaPublicacion DESC 
+          OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        `);
+      return result.recordset;
     } finally {
-      await client.end();
+      if (pool) {
+        await pool.close();
+      }
     }
   }
 }

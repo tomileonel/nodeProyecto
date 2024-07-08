@@ -94,12 +94,13 @@ export default class RecetasRepository {
       const result = await pool.request()
         .input('userTags', sql.NVarChar(sql.MAX), `%${userTagsString}%`)
         .query(`
-          SELECT r.* 
-          FROM recetas r 
-          JOIN TagRecetas as TR on TR.idReceta = r.id
-          WHERE TR.idTag LIKE @userTags AND r.puntuacion > 4.5 
-          ORDER BY r.fechaPublicacion DESC 
-          OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        SELECT r.*, U.imagen as imagenUsuario,U.nombreusuario
+        FROM recetas r 
+        JOIN TagRecetas as TR on TR.idReceta = r.id
+        JOIN  Usuarios as U on U.id = r.idcreador
+        WHERE TR.idTag LIKE 1 AND r.rating > 4.5 
+        ORDER BY r.fechaPublicacion DESC 
+        OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
         `);
       return result.recordset;
     } finally {

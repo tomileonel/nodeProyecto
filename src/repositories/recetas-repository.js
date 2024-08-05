@@ -2,6 +2,54 @@ import sql from 'mssql';
 import getConnection from '../configs/db-config.js';
 
 export default class RecetasRepository {
+
+   async getRecipesByTag(userTags) {
+    let pool;
+    try {
+      pool = await getConnection();
+
+      if (userTags.length === 0) {
+        const result = await pool.request().query(`
+          SELECT DISTINCT r.*
+          FROM recetas r
+        `);
+        return result.recordset;
+      }
+
+      const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+
+      const query = `
+        SELECT r.*
+        FROM recetas r
+        JOIN TagRecetas TR ON TR.idReceta = r.id
+        WHERE TR.idTag IN (${tagPlaceholders})
+        AND r.id IN (
+          SELECT TR2.idReceta
+          FROM TagRecetas TR2
+          WHERE TR2.idTag IN (${tagPlaceholders})
+          GROUP BY TR2.idReceta
+          HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+        )
+        GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
+                 r.carboidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
+      `;
+
+      const request = pool.request();
+      userTags.forEach((tag, index) => {
+        request.input(`tag${index}`, sql.Int, tag);
+      });
+      request.input('totalTags', sql.Int, userTags.length);
+
+      const result = await request.query(query);
+      return result.recordset;
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+
+
   async getUserTags(userId) {
     let pool;
     try {
@@ -22,19 +70,50 @@ export default class RecetasRepository {
     }
   }
 
-  async getRecipesByTag(userTags) {
+  async getRecipesByTagAndUser(tagId, userTags) {
     let pool;
     try {
       pool = await getConnection();
-      const userTagsString = userTags.join(',');
-      const result = await pool.request()
-        .input('userTags', sql.NVarChar(sql.MAX), `%${userTagsString}%`)
-        .query(`
-          SELECT r.* 
-          FROM recetas r 
-          JOIN TagRecetas as TR on TR.idReceta = r.id
-          WHERE TR.idTag LIKE @userTags
-        `);
+
+      const request = pool.request();
+
+      let query;
+
+      if (userTags.length === 0 || userTags.includes(0)) {
+        query = `
+          SELECT DISTINCT r.*
+          FROM recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag = @tagId
+        `;
+        request.input('tagId', sql.Int, tagId);
+      } else {
+        const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+
+        query = `
+          SELECT DISTINCT r.*
+          FROM recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag = @tagId
+            AND r.id IN (
+              SELECT TR2.idReceta
+              FROM TagRecetas TR2
+              WHERE TR2.idTag IN (${tagPlaceholders})
+              GROUP BY TR2.idReceta
+              HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+            )
+        `;
+
+        request.input('tagId', sql.Int, tagId);
+
+        userTags.forEach((tag, index) => {
+          request.input(`tag${index}`, sql.Int, tag);
+        });
+
+        request.input('totalTags', sql.Int, userTags.length);
+      }
+
+      const result = await request.query(query);
       return result.recordset;
     } finally {
       if (pool) {
@@ -42,6 +121,8 @@ export default class RecetasRepository {
       }
     }
   }
+
+
 
   async searchRecipes(userTags, tipoCocina, ingredientes, maxCalorias, maxTiempo) {
     let pool;
@@ -90,35 +171,50 @@ export default class RecetasRepository {
     let pool;
     try {
       pool = await getConnection();
-      const userTagsString = userTags.join(',');
-      const result = await pool.request()
-        .input('userTags', sql.NVarChar(sql.MAX), `%${userTagsString}%`)
-        .query(`
-        SELECT r.*, U.imagen as imagenUsuario,U.nombreusuario
-        FROM recetas r 
-        JOIN TagRecetas as TR on TR.idReceta = r.id
-        JOIN  Usuarios as U on U.id = r.idcreador
-        WHERE TR.idTag LIKE 1 AND r.rating > 4.5 
-        ORDER BY r.fechaPublicacion DESC 
-        OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
-        `);
+      
+      let query;
+      const request = pool.request();
+
+      if (userTags.length === 0 || userTags.includes(0)) {
+        query = `
+          SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
+          FROM recetas r
+          JOIN Usuarios U ON U.id = r.idcreador
+          WHERE r.rating > 1.5
+          ORDER BY r.fechaPublicacion DESC
+          OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        `;
+      } else {
+        const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+
+        query = `
+          SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
+          FROM recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          JOIN Usuarios U ON U.id = r.idcreador
+          WHERE TR.idTag IN (${tagPlaceholders})
+            AND r.rating > 4.5
+            AND r.id IN (
+              SELECT TR2.idReceta
+              FROM TagRecetas TR2
+              WHERE TR2.idTag IN (${tagPlaceholders})
+              GROUP BY TR2.idReceta
+              HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+            )
+          ORDER BY r.fechaPublicacion DESC
+          OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        `;
+
+        userTags.forEach((tag, index) => {
+          request.input(`tag${index}`, sql.Int, tag);
+        });
+        request.input('totalTags', sql.Int, userTags.length);
+      }
+
+      const result = await request.query(query);
       return result.recordset;
     } finally {
       if (pool) {
-        await pool.close();
-      }
-    }
-  }
-  async getIdByName(nombre){
-    let pool;
-    try{
-      pool = await getConnection();
-      const result = await pool.request()
-      .input('nombre', sql.NVarChar(sql.MAX), nombre)
-      .query(`SELECT id FROM Recetas WHERE nombre = @nombre`)
-      return result.recordset;
-    }finally{
-      if(pool){
         await pool.close();
       }
     }

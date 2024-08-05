@@ -48,15 +48,16 @@ export default class RecetasService {
     }
   }
 
-  async getRecipesByTag1(tagId) {
+  async getRecipesByTagWithUser(tagId, userId) {
     try {
-      const recipes = await this.recetasRepository.getRecipesByTag([tagId]);
+      const userTags = await this.recetasRepository.getUserTags(userId);
+      const recipes = await this.recetasRepository.getRecipesByTagAndUser(tagId, userTags);
       return [recipes, 200];
     } catch (error) {
-      console.error(`Error fetching recipes by tag: ${error}`);
-      return [{ error: 'No se encuentran recetas para el tag proporcionado' }, 404];
+      console.error(`Error fetching recipes by tag and user: ${error}`);
+      return ["No se encuentran recetas", 404];
     }
-  }
+  } 
 
 
 }

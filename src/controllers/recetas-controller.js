@@ -43,10 +43,10 @@ router.get('/tags', async (req, res) => {
   }
 });
 
-router.get('/recipesByTag/:tagId', async (req, res) => {
-  const { tagId } = req.params;
+router.get('/recipesByTag/:tagId/:userId', async (req, res) => {
+  const { tagId, userId } = req.params;
   try {
-    const [recipes, status] = await recetasService.getRecipesByTag1(parseInt(tagId, 10));
+    const [recipes, status] = await recetasService.getRecipesByTagWithUser(parseInt(tagId, 10), parseInt(userId, 10));
     res.status(status).json(recipes);
   } catch (error) {
     res.status(500).json({ error: error.message });

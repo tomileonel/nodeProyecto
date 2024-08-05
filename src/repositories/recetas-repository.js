@@ -2,6 +2,54 @@ import sql from 'mssql';
 import getConnection from '../configs/db-config.js';
 
 export default class RecetasRepository {
+
+   async getRecipesByTag(userTags) {
+    let pool;
+    try {
+      pool = await getConnection();
+
+      if (userTags.length === 0) {
+        const result = await pool.request().query(`
+          SELECT DISTINCT r.*
+          FROM recetas r
+        `);
+        return result.recordset;
+      }
+
+      const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+
+      const query = `
+        SELECT r.*
+        FROM recetas r
+        JOIN TagRecetas TR ON TR.idReceta = r.id
+        WHERE TR.idTag IN (${tagPlaceholders})
+        AND r.id IN (
+          SELECT TR2.idReceta
+          FROM TagRecetas TR2
+          WHERE TR2.idTag IN (${tagPlaceholders})
+          GROUP BY TR2.idReceta
+          HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+        )
+        GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
+                 r.carboidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
+      `;
+
+      const request = pool.request();
+      userTags.forEach((tag, index) => {
+        request.input(`tag${index}`, sql.Int, tag);
+      });
+      request.input('totalTags', sql.Int, userTags.length);
+
+      const result = await request.query(query);
+      return result.recordset;
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+
+
   async getUserTags(userId) {
     let pool;
     try {
@@ -22,45 +70,51 @@ export default class RecetasRepository {
     }
   }
 
-  async getRecipesByTag(userTags) {
+  async getRecipesByTagAndUser(tagId, userTags) {
     let pool;
     try {
       pool = await getConnection();
 
       const request = pool.request();
 
-      if (userTags.includes(0) || userTags.length === 0) {
-        // Si userTags incluye 0 o está vacío, traer todas las recetas
-        const result = await request.query('SELECT * FROM recetas');
-        return result.recordset;
+      let query;
+
+      if (userTags.length === 0 || userTags.includes(0)) {
+        query = `
+          SELECT DISTINCT r.*
+          FROM recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag = @tagId
+        `;
+        request.input('tagId', sql.Int, tagId);
       } else {
-        // Crear una lista de parámetros para usar en la cláusula IN
         const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
 
-        // Crear la consulta parametrizada
-        const query = `
-          SELECT r.*
+        query = `
+          SELECT DISTINCT r.*
           FROM recetas r
-          WHERE r.id IN (
-            SELECT TR.idReceta
-            FROM TagRecetas TR
-            WHERE TR.idTag IN (${tagPlaceholders})
-            GROUP BY TR.idReceta
-            HAVING COUNT(DISTINCT TR.idTag) = @totalTags
-          )
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag = @tagId
+            AND r.id IN (
+              SELECT TR2.idReceta
+              FROM TagRecetas TR2
+              WHERE TR2.idTag IN (${tagPlaceholders})
+              GROUP BY TR2.idReceta
+              HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+            )
         `;
 
-        // Añadir parámetros a la consulta
+        request.input('tagId', sql.Int, tagId);
+
         userTags.forEach((tag, index) => {
           request.input(`tag${index}`, sql.Int, tag);
         });
 
-        // Añadir el parámetro del total de tags
         request.input('totalTags', sql.Int, userTags.length);
-
-        const result = await request.query(query);
-        return result.recordset;
       }
+
+      const result = await request.query(query);
+      return result.recordset;
     } finally {
       if (pool) {
         await pool.close();
@@ -68,25 +122,8 @@ export default class RecetasRepository {
     }
   }
 
-  async getUserTags(userId) {
-    let pool;
-    try {
-      pool = await getConnection();
-      const result = await pool.request()
-        .input('userId', sql.Int, userId)
-        .query(`
-          SELECT idTag 
-          FROM TagUsuario
-          WHERE idUsuario = @userId
-        `);
-      return result.recordset.map(record => record.idTag);
-    } finally {
-      if (pool) {
-        await pool.close();
-      }
-    }
-  }
-  
+
+
   async searchRecipes(userTags, tipoCocina, ingredientes, maxCalorias, maxTiempo) {
     let pool;
     try {
@@ -134,18 +171,47 @@ export default class RecetasRepository {
     let pool;
     try {
       pool = await getConnection();
-      const userTagsString = userTags.join(',');
-      const result = await pool.request()
-        .input('userTags', sql.NVarChar(sql.MAX), `%${userTagsString}%`)
-        .query(`
-        SELECT r.*, U.imagen as imagenUsuario,U.nombreusuario
-        FROM recetas r 
-        JOIN TagRecetas as TR on TR.idReceta = r.id
-        JOIN  Usuarios as U on U.id = r.idcreador
-        WHERE TR.idTag LIKE 1 AND r.rating > 4.5 
-        ORDER BY r.fechaPublicacion DESC 
-        OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
-        `);
+      
+      let query;
+      const request = pool.request();
+
+      if (userTags.length === 0 || userTags.includes(0)) {
+        query = `
+          SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
+          FROM recetas r
+          JOIN Usuarios U ON U.id = r.idcreador
+          WHERE r.rating > 1.5
+          ORDER BY r.fechaPublicacion DESC
+          OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        `;
+      } else {
+        const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+
+        query = `
+          SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
+          FROM recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          JOIN Usuarios U ON U.id = r.idcreador
+          WHERE TR.idTag IN (${tagPlaceholders})
+            AND r.rating > 4.5
+            AND r.id IN (
+              SELECT TR2.idReceta
+              FROM TagRecetas TR2
+              WHERE TR2.idTag IN (${tagPlaceholders})
+              GROUP BY TR2.idReceta
+              HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+            )
+          ORDER BY r.fechaPublicacion DESC
+          OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        `;
+
+        userTags.forEach((tag, index) => {
+          request.input(`tag${index}`, sql.Int, tag);
+        });
+        request.input('totalTags', sql.Int, userTags.length);
+      }
+
+      const result = await request.query(query);
       return result.recordset;
     } finally {
       if (pool) {

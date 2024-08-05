@@ -33,5 +33,14 @@ router.get('/novedades/:userId', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.get('/getIdByName/:nombre', async (req,res) => {
+  const { nombre } = req.params;
+  try {
+    const [id, status] = await recetasService.getIdporNombre(nombre);
+    res.status(status).json(id);
+  } catch (error) {
+    res.status(500).json({error: error.message});
+  }
+})
 
 export default router;

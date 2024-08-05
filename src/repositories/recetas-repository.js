@@ -109,4 +109,18 @@ export default class RecetasRepository {
       }
     }
   }
+  async getIdByName(nombre){
+    let pool;
+    try{
+      pool = await getConnection();
+      const result = await pool.request()
+      .input('nombre', sql.NVarChar(sql.MAX), nombre)
+      .query(`SELECT id FROM Recetas WHERE nombre = @nombre`)
+      return result.recordset;
+    }finally{
+      if(pool){
+        await pool.close();
+      }
+    }
+  }
 }

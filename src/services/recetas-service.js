@@ -37,4 +37,26 @@ export default class RecetasService {
       return ["No se encuentran recetas novedosas", 404];
     }
   }
+
+  async getAllTags() {
+    try {
+      const tags = await this.recetasRepository.getAllTags();
+      return [tags, 200];
+    } catch (error) {
+      console.error(`Error in TagService: ${error}`);
+      return [{ error: 'Error al obtener las etiquetas' }, 500];
+    }
+  }
+
+  async getRecipesByTag1(tagId) {
+    try {
+      const recipes = await this.recetasRepository.getRecipesByTag([tagId]);
+      return [recipes, 200];
+    } catch (error) {
+      console.error(`Error fetching recipes by tag: ${error}`);
+      return [{ error: 'No se encuentran recetas para el tag proporcionado' }, 404];
+    }
+  }
+
+
 }

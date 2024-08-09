@@ -166,7 +166,20 @@ export default class RecetasRepository {
       }
     }
   }
-
+  async getIdByName(nombre){
+    let pool;
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('nombre', sql.VarChar(sql.MAX), nombre)
+    .query(`SELECT id FROM Recetas WHERE nombre = @nombre`);
+    return result;
+  }finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+  }
   async getLatestRecipes(userTags) {
     let pool;
     try {
@@ -219,4 +232,5 @@ export default class RecetasRepository {
       }
     }
   }
+  
 }

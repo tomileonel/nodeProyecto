@@ -37,4 +37,13 @@ export default class RecetasService {
       return ["No se encuentran recetas novedosas", 404];
     }
   }
+  async getIdporNombre(nombre){
+    try {
+      const id = await this.recetasRepository.getIdByName(nombre);
+      return [id, 200];
+    } catch (error) {
+      console.error(`No se encontro el id, error: ${error}`)
+      return ["No se pudo conseguir el id", 404]
+    }
+  }
 }

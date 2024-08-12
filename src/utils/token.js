@@ -1,15 +1,15 @@
 import jwt from 'jsonwebtoken';
 
-const secretKey = process.env.JWT_SECRET || 'tu_secreto';
+const SECRET_KEY = 'budin'; 
 
 export const generateToken = (user) => {
-  return jwt.sign({ userId: user.id, email: user.mail }, secretKey, { expiresIn: '1h' });
+  return jwt.sign({ id: user.id, email: user.mail }, SECRET_KEY, { expiresIn: '1h' });
 };
 
 export const verifyToken = (token) => {
   try {
-    return jwt.verify(token, secretKey);
+    return jwt.verify(token, SECRET_KEY);
   } catch (error) {
-    return null;
+    throw new Error('Token inválido');
   }
 };

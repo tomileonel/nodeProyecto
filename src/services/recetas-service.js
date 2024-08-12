@@ -16,14 +16,13 @@ export default class RecetasService {
     }
   }
 
-  async searchRecipes(userId, tipoCocina, ingredientes, maxCalorias, maxTiempo) {
+   async getFilteredRecipes(params) {
     try {
-      const userTags = await this.recetasRepository.getUserTags(userId);
-      const recipes = await this.recetasRepository.searchRecipes(userTags, tipoCocina, ingredientes, maxCalorias, maxTiempo);
-      return [recipes, 200];
+      const [recipes, status] = await this.recetasRepository.getFilteredRecipes(params);
+      return { recipes, status: Number.isInteger(status) ? status : 200 };
     } catch (error) {
-      console.error(`Error searching recipes: ${error}`);
-      return ["No se encuentran recetas", 404];
+      console.error(`Error in RecipeService: ${error}`);
+      return { recipes: "No se encuentran recetas", status: 500 };
     }
   }
 

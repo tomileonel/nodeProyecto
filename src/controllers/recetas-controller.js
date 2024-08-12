@@ -14,10 +14,19 @@ router.get('/byTag/:userId', async (req, res) => {
   }
 });
 
-router.get('/search', async (req, res) => {
-  const {tipoCocina, ingredientes, maxCalorias, maxTiempo } = req.query;
+router.get('/recipes', async (req, res) => {
+  const { search, tiempoMax, caloriasMax, ingredientes, tags } = req.query;
+
   try {
-    const [recipes, status] = await recetasService.searchRecipes(tipoCocina, ingredientes, maxCalorias, maxTiempo);
+    const params = {
+      search,
+      tiempoMax: tiempoMax ? parseInt(tiempoMax, 10) : null,
+      caloriasMax: caloriasMax ? parseInt(caloriasMax, 10) : null,
+      ingredientes: ingredientes ? ingredientes.split(',').map(Number) : [],
+      tags: tags ? tags.split(',').map(Number) : []
+    };
+
+    const { recipes, status } = await recetasService.getFilteredRecipes(params);
     res.status(status).json(recipes);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -282,7 +282,83 @@ export default class RecetasRepository {
       }
     }
   }
+
+   async getFilteredRecipes({ search, tiempoMax, caloriasMax, ingredientes, tags }) {
+    let query = `
+      SELECT DISTINCT r.*
+      FROM recetas r
+      LEFT JOIN TagRecetas rt ON r.id = rt.idReceta
+      WHERE 1=1
+    `;
+
+    // Filtro de búsqueda
+    if (search) {
+      query += ` AND r.nombre LIKE '%' + @search + '%'`;
+    }
+
+    // Filtro de tiempo
+    if (tiempoMax) {
+      query += ` AND r.tiempoMins <= @tiempoMax`;
+    }
+
+    // Filtro de calorías
+    if (caloriasMax) {
+      query += ` AND r.calorias <= @caloriasMax`;
+    }
+
+    // Filtro de ingredientes
+    if (ingredientes.length > 0) {
+      const placeholders = ingredientes.map((_, index) => `@ingrediente${index}`).join(',');
+      query += `
+        AND r.id IN (
+          SELECT DISTINCT ri.idReceta
+          FROM IngredientePorReceta ri
+          WHERE ri.idIngrediente IN (${placeholders})
+        )
+      `;
+    }
+
+    // Filtro de tags
+    if (tags.length > 0) {
+      const tagPlaceholders = tags.map((_, index) => `@tag${index}`).join(',');
+      query += `
+        AND r.id IN (
+          SELECT DISTINCT rt.idReceta
+          FROM tagRecetas rt
+          WHERE rt.idTag IN (${tagPlaceholders})
+        )
+      `;
+    }
+
+    let pool;
+    try {
+      pool = await getConnection();
+      const request = pool.request();
+
+      // Añadir parámetros a la consulta
+      if (search) request.input('search', sql.VarChar, search);
+      if (tiempoMax) request.input('tiempoMax', sql.Int, tiempoMax);
+      if (caloriasMax) request.input('caloriasMax', sql.Int, caloriasMax);
+      ingredientes.forEach((ing, index) => request.input(`ingrediente${index}`, sql.Int, ing));
+      tags.forEach((tag, index) => request.input(`tag${index}`, sql.Int, tag));
+
+      // Ejecutar la consulta
+      const result = await request.query(query);
+
+      // Retornar resultados
+      return [result.recordset, 200];
+    } catch (error) {
+      console.error(`Error fetching filtered recipes: ${error}`);
+      return [["No se encuentran recetas"], 500];
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
 }
+  
+
   
   
 

@@ -1,5 +1,3 @@
-// src/controllers/auth-controller.js
-
 import AuthService from '../services/auth-service.js';
 import { authenticateToken } from '../utils/auth-middleware.js';
 
@@ -22,4 +20,3 @@ export const register = async (req, res) => {
   const [response, statusCode] = await authService.register(username, name, lastName, phone, email, password);
   res.status(statusCode).json(response);
 };
-  

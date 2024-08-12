@@ -35,9 +35,9 @@ export default class AuthService {
         return [{ message: 'El correo electrónico ya está registrado' }, 400];
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      // const hashedPassword = await bcrypt.hash(password, 10);
 
-      const isRegisteredSuccessfully = await this.authRepository.registerUser(username, name, lastName, phone, email, hashedPassword);
+      const isRegisteredSuccessfully = await this.authRepository.registerUser(username, name, lastName, phone, email, password);
       if (isRegisteredSuccessfully) {
         const newUser = await this.authRepository.getUserByEmail(email);
         const token = generateToken(newUser);

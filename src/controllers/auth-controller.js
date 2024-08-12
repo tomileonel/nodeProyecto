@@ -1,6 +1,5 @@
-// src/controllers/auth-controller.js
-
 import AuthService from '../services/auth-service.js';
+import { authenticateToken } from '../utils/auth-middleware.js';
 
 const authService = new AuthService();
 

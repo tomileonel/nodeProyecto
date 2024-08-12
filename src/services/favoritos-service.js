@@ -13,7 +13,9 @@ export default class FavoritosService {
         console.error(`error founding bookmarked: ${error}`);
         return ["No se encontraron los favoritos", 404];
     }
-  }async BookmarkRecipe(userId,recipeId){
+  }
+  
+  async BookmarkRecipe(userId,recipeId){
     try {
         const bookmark = await this.favoritosRepository.PonerBookmark(userId,recipeId);
         return [bookmark, 201]
@@ -22,6 +24,7 @@ export default class FavoritosService {
         return ["No se pudo agregar a favoritos", 404];
     }
   }
+  
   async DeleteBookmark(userId,recipeId){
     try {
         const bookmark = await this.favoritosRepository.SacarBookmark(userId,recipeId);
@@ -29,6 +32,15 @@ export default class FavoritosService {
     } catch (error) {
         console.error(`error adding bookmark: ${error}`)
         return ["No se pudo sacar de favoritos", 404];
+    }
+  }
+  async GetFavoritesFromUser(userId){
+    try{
+      const bookmark = await this.favoritosRepository.FavoritosDeUsuario(userId)
+      return [bookmark, 200]
+    }catch(error){
+      console.error(`No se pudo encontrar: ${error}`)
+      return ["No se pudieron encontrar favoritos", 404]
     }
   }
 }

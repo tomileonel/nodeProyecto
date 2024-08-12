@@ -193,7 +193,7 @@ export default class RecetasRepository {
           SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
           FROM recetas r
           JOIN Usuarios U ON U.id = r.idcreador
-          WHERE r.rating > 1.5
+          WHERE r.rating > 4.5
           ORDER BY r.fechaPublicacion DESC
           OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
         `;
@@ -232,5 +232,31 @@ export default class RecetasRepository {
       }
     }
   }
+
+  async getSpecialTags ()
+  {
+    let pool;
+    try {
+      pool = await getConnection();
+      const request = pool.request();
+  
+      const query = `
+        SELECT *
+        FROM tags
+        WHERE specialTag = 1
+      `;
+  
+      const result = await request.query(query);
+      return result.recordset;
+    } catch (error) {
+      console.error(`Error al obtener los tags especiales: ${error}`);
+      throw new Error('Error al obtener los tags especiales');
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  };
+  
   
 }

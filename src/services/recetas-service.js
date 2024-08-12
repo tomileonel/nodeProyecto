@@ -46,4 +46,14 @@ export default class RecetasService {
       return ["No se pudo conseguir el id", 404]
     }
   }
+
+  async getAllSpecialTags () {
+    try {
+      const tags = await this.recetasRepository.getSpecialTags();
+      return [tags, 200];
+    } catch (error) {
+      console.error(`Error al obtener los tags especiales: ${error}`);
+      return [[], 500];
+    }
+  };
 }

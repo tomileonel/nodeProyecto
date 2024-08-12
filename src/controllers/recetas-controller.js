@@ -43,9 +43,9 @@ router.get('/getIdByName/:nombre', async (req,res) => {
   }
 })
 
-router.get('/tags', async (req, res) => {
+router.get('/specialTags', async (req, res) => {
   try {
-    const [tags, status] = await recetasService.getAllTags();
+    const [tags, status] = await recetasService.getAllSpecialTags();
     res.status(status).json(tags);
   } catch (error) {
     res.status(500).json({ error: error.message });

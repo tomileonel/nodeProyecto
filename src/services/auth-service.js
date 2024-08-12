@@ -1,12 +1,13 @@
 import bcrypt from 'bcryptjs';
 import AuthRepository from '../repositories/auth-repository.js';
 import { generateToken } from '../utils/token.js';
-
+let tk;
 export default class AuthService {
+  
   constructor() {
     this.authRepository = new AuthRepository();
   }
-
+ 
   async login(email, password) {
     try {
       const user = await this.authRepository.getUserByEmail(email);
@@ -40,7 +41,7 @@ export default class AuthService {
       if (isRegisteredSuccessfully) {
         const newUser = await this.authRepository.getUserByEmail(email);
         const token = generateToken(newUser);
-
+        tk = token;
         return [{ message: 'Registro exitoso', token }, 201];
       } else {
         return [{ message: 'Error al registrar el usuario' }, 500];

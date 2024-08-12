@@ -257,6 +257,32 @@ export default class RecetasRepository {
       }
     }
   };
-  
-  
+
+  async getRecipesByTagWithUser(tagId, userId) {
+    let pool;
+    try {
+      pool = await getConnection();
+      const query = `
+        SELECT r.*
+        FROM recetas r
+        JOIN TagRecetas TR ON TR.idReceta = r.id
+        WHERE TR.idTag = @tagId
+          AND r.idCreador = @userId
+      `;
+
+      const result = await pool.request()
+        .input('tagId', sql.Int, tagId)
+        .input('userId', sql.Int, userId)
+        .query(query);
+
+      return result.recordset;
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
 }
+  
+  
+

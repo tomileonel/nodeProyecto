@@ -56,4 +56,19 @@ export default class RecetasService {
       return [[], 500];
     }
   };
+
+  async getRecipesByTagWithUser(tagId, userId) {
+    try {
+      const recipes = await this.recetasRepository.getRecipesByTagWithUser(tagId, userId);
+      if (recipes.length === 0) {
+        return ["No se encuentran recetas para la categoría seleccionada", 404];
+      }
+      return [recipes, 200];
+    } catch (error) {
+      console.error(`Error fetching recipes by tag and user: ${error}`);
+      return ["Error interno del servidor", 500];
+    }
+  }
 }
+
+

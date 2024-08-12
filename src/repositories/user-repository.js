@@ -28,6 +28,19 @@ class UserRepository {
       throw error;
     }
   }
+
+  async getUserById(id) {
+    try {
+      const pool = await getConnection();
+      const result = await pool.request()
+        .input('id', sql.Int, id)
+        .query('SELECT * FROM Usuarios WHERE id = @id');
+      return result.recordset[0]; // Devuelve el primer registro encontrado
+    } catch (error) {
+      console.error(`Error en la consulta de usuario por ID: ${error}`);
+      throw error;
+    }
+  }
 }
 
 export default UserRepository;

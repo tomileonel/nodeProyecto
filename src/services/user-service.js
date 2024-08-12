@@ -13,6 +13,22 @@ class UserService {
       throw error;
     }
   }
+
+
+
+  async getUserById(id) {
+    try {
+      const user = await this.userRepository.getUserById(id);
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+      return user;
+    } catch (error) {
+      console.error(`Error en el servicio de usuario: ${error.message}`);
+      throw error;
+    }
+  }
 }
+
 
 export default UserService;

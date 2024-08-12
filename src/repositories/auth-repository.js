@@ -8,24 +8,25 @@ export default class AuthRepository {
       pool = await getConnection();
       const result = await pool.request()
         .input('email', sql.VarChar, email)
-        .input('password', sql.VarChar, password)
-        .query('SELECT * FROM Usuarios WHERE mail = @email AND contrasena = @password');
-        
-      return result.recordset.length > 0; 
+        .query('SELECT * FROM Usuarios WHERE mail = @email');
+      
+      return result.recordset[0]; // Devuelve el usuario encontrado
     } finally {
       if (pool) {
         await pool.close();
       }
     }
   }
+
   async getUserByEmail(email) {
     let pool;
     try {
       pool = await getConnection();
+      console.log(`Querying user with email: ${email}`);
       const result = await pool.request()
         .input('email', sql.VarChar, email)
         .query('SELECT * FROM Usuarios WHERE mail = @email');
-      return result.recordset[0]; 
+      return result.recordset[0];
     } finally {
       if (pool) {
         await pool.close();
@@ -38,17 +39,17 @@ export default class AuthRepository {
     try {
       pool = await getConnection();
       const result = await pool.request()
-        .input('nombreusuario', sql.NVarChar, username) // Nombre de usuario
-        .input('nombre', sql.NVarChar, name) // Nombre
-        .input('apellido', sql.NVarChar, lastName) // Apellido
-        .input('telefono', sql.VarChar, phone) // Teléfono
-        .input('mail', sql.VarChar, email) // Email
-        .input('contrasena', sql.VarChar, password) // Contraseña
+        .input('nombreusuario', sql.NVarChar, username)
+        .input('nombre', sql.NVarChar, name)
+        .input('apellido', sql.NVarChar, lastName)
+        .input('telefono', sql.VarChar, phone)
+        .input('mail', sql.VarChar, email)
+        .input('contrasena', sql.VarChar, password)
         .query(`
           INSERT INTO Usuarios (nombreusuario, nombre, apellido, telefono, mail, contrasena) 
           VALUES (@nombreusuario, @nombre, @apellido, @telefono, @mail, @contrasena)
         `);
-      return result.rowsAffected[0] > 0; 
+      return result.rowsAffected[0] > 0;
     } finally {
       if (pool) {
         await pool.close();

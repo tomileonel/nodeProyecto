@@ -193,7 +193,7 @@ export default class RecetasRepository {
           SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
           FROM recetas r
           JOIN Usuarios U ON U.id = r.idcreador
-          WHERE r.rating > 4.5
+          WHERE r.rating > 4
           ORDER BY r.fechaPublicacion DESC
           OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
         `;
@@ -206,7 +206,7 @@ export default class RecetasRepository {
           JOIN TagRecetas TR ON TR.idReceta = r.id
           JOIN Usuarios U ON U.id = r.idcreador
           WHERE TR.idTag IN (${tagPlaceholders})
-            AND r.rating > 4.5
+            AND r.rating > 4
             AND r.id IN (
               SELECT TR2.idReceta
               FROM TagRecetas TR2

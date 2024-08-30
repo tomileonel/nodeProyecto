@@ -68,6 +68,20 @@ export default class RecetasService {
       return ["Error interno del servidor", 500];
     }
   }
+
+  async getFullRecipeById(recipeId) {
+    try {
+        const recipe = await this.recetasRepository.getFullRecipeById(recipeId);
+        if (!recipe) {
+            throw new Error('Receta no encontrada');
+        }
+        return recipe;
+    } catch (error) {
+        console.error(`Error en el servicio al obtener la receta completa: ${error.message}`);
+        throw error;
+    }
+}
+
 }
 
 

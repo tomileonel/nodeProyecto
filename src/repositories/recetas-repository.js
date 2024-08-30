@@ -376,7 +376,7 @@ export default class RecetasRepository {
 
         // Obtener los ingredientes
         const ingredientsQuery = `
-            SELECT i.* FROM Ingredientes i
+            SELECT i.*, ipr.cant FROM Ingredientes i
             INNER JOIN IngredientePorReceta ipr ON i.id = ipr.Idingrediente
             WHERE ipr.IdReceta = @recipeId;
         `;

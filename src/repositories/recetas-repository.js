@@ -356,7 +356,6 @@ export default class RecetasRepository {
       }
     }
   }
-
   async getFullRecipeById(recipeId) {
     try {
         const pool = await getConnection();
@@ -372,7 +371,7 @@ export default class RecetasRepository {
         if (recipeResult.recordset.length === 0) {
             return null; // No se encontró la receta
         }
-        
+
         const receta = recipeResult.recordset[0];
 
         // Obtener los ingredientes
@@ -384,7 +383,7 @@ export default class RecetasRepository {
         const ingredientsResult = await pool.request()
             .input('recipeId', sql.Int, recipeId)
             .query(ingredientsQuery);
-        
+
         receta.ingredientes = ingredientsResult.recordset;
 
         // Obtener los pasos
@@ -394,7 +393,7 @@ export default class RecetasRepository {
         const stepsResult = await pool.request()
             .input('recipeId', sql.Int, recipeId)
             .query(stepsQuery);
-        
+
         receta.pasos = stepsResult.recordset;
 
         // Obtener los tags
@@ -409,10 +408,20 @@ export default class RecetasRepository {
 
         receta.tags = tagsResult.recordset;
 
-        return receta;
+        // Obtener la información del creador
+        const creatorQuery = `
+            SELECT u.id, u.nombreusuario, u.imagen FROM Usuarios u
+            WHERE u.id = @creatorId;
+        `;
+        const creatorResult = await pool.request()
+            .input('creatorId', sql.Int, receta.idcreador)
+            .query(creatorQuery);
 
+        receta.creador = creatorResult.recordset.length > 0 ? creatorResult.recordset[0] : null;
+
+        return receta;
     } catch (error) {
-        console.error(`Error al obtener la receta completa: ${error.message}`);
+        console.error('Error al obtener la receta completa:', error);
         throw error;
     }
 }

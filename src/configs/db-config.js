@@ -3,11 +3,11 @@ import sql from 'mssql';
 const dbConfig = {
   user: 'tomi',
   password: 'helicopterO1',
-  server: 'localhost',
+  server: 'localhost', // Nombre de la instancia
   port: 1433,
   database: 'PocketChefDB',
   options: {
-    encrypt: true,
+    encrypt: true, // Prueba con false si no estás usando conexiones cifradas
     trustServerCertificate: true,
   },
 };
@@ -17,7 +17,7 @@ export default async function getConnection() {
     const pool = await sql.connect(dbConfig);
     return pool;
   } catch (error) {
-    console.error(`Error al conectar a la base de datos: ${error}`);
+    console.error(`Error al conectar a la base de datos: ${error.message}`);
     throw error;
   }
 }

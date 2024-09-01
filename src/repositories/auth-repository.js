@@ -32,4 +32,20 @@ export default class AuthRepository {
       throw error;
     }
   }
+
+
+async getUserById(userId)  {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('userId', sql.Int, userId)  // Usa el ID del usuario para la consulta
+      .query('SELECT * FROM Usuarios WHERE id = @userId');  // Ajusta la consulta según tu esquema de base de datos
+
+    return result.recordset[0];  // Devuelve el primer registro (el perfil del usuario)
+  } catch (error) {
+    console.error(`Error al obtener el perfil del usuario por ID: ${error}`);
+    throw error;
+  }
+}
+
 }

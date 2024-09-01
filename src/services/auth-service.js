@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import AuthRepository from '../repositories/auth-repository.js';
 import { generateToken } from '../utils/token.js';
+import jwt from 'jsonwebtoken';
 let tk;
 export default class AuthService {
   
@@ -12,7 +13,7 @@ export default class AuthService {
     try {
       const user = await this.authRepository.getUserByEmail(email);
       if (!user) {
-        return [{ message: 'Credenciales incorrectas' }, 401];
+        return [{ message: 'Credenciales incorrectas no user' }, 401];
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.contrasena);
@@ -30,25 +31,51 @@ export default class AuthService {
 
   async register(username, name, lastName, phone, email, password) {
     try {
+      // Verificar si el usuario ya existe
       const existingUser = await this.authRepository.getUserByEmail(email);
       if (existingUser) {
         return [{ message: 'El correo electrónico ya está registrado' }, 400];
       }
 
-      // const hashedPassword = await bcrypt.hash(password, 10);
+      // Hashear la contraseña antes de guardarla
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-      const isRegisteredSuccessfully = await this.authRepository.registerUser(username, name, lastName, phone, email, password);
-      if (isRegisteredSuccessfully) {
-        const newUser = await this.authRepository.getUserByEmail(email);
-        const token = generateToken(newUser);
-        tk = token;
-        return [{ message: 'Registro exitoso', token }, 201];
-      } else {
+      // Registrar al usuario
+      const isRegisteredSuccessfully = await this.authRepository.registerUser(username, name, lastName, phone, email, hashedPassword);
+      if (!isRegisteredSuccessfully) {
         return [{ message: 'Error al registrar el usuario' }, 500];
       }
+
+      // Obtener el usuario registrado para generar el token
+      const newUser = await this.authRepository.getUserByEmail(email);
+      if (!newUser) {
+        return [{ message: 'Error al obtener el usuario registrado' }, 500];
+      }
+
+      // Generar el token
+      const token = generateToken(newUser);
+
+      // Retornar respuesta exitosa
+      return [{ message: 'Registro exitoso', token }, 201];
     } catch (error) {
       console.error(`Error en el registro: ${error.message}`, error.stack);
       return [{ message: 'Error en el servidor' }, 500];
     }
   }
+
+
+  async getUserByToken(token) {
+    try {
+      const verified = jwt.verify(token, 'budin'); // Decodifica el token usando la clave secreta
+      const userId = verified.id;  // Obtiene el ID del usuario del payload del token
+
+      const user = await this.authRepository.getUserById(userId);  // Llama al repositorio para obtener el perfil del usuario
+      return user;  // Devuelve el perfil del usuario
+    } catch (error) {
+      console.error(`Error al obtener el usuario por token: ${error.message}`);
+      throw new Error('Token inválido o usuario no encontrado');
+    }
+  }
+
+
 }

@@ -356,6 +356,76 @@ export default class RecetasRepository {
       }
     }
   }
+  async getFullRecipeById(recipeId) {
+    try {
+        const pool = await getConnection();
+
+        // Obtener la receta base
+        const recipeQuery = `
+            SELECT * FROM Recetas WHERE id = @recipeId;
+        `;
+        const recipeResult = await pool.request()
+            .input('recipeId', sql.Int, recipeId)
+            .query(recipeQuery);
+
+        if (recipeResult.recordset.length === 0) {
+            return null; // No se encontró la receta
+        }
+
+        const receta = recipeResult.recordset[0];
+
+        // Obtener los ingredientes
+        const ingredientsQuery = `
+            SELECT i.*, ipr.cant FROM Ingredientes i
+            INNER JOIN IngredientePorReceta ipr ON i.id = ipr.Idingrediente
+            WHERE ipr.IdReceta = @recipeId;
+        `;
+        const ingredientsResult = await pool.request()
+            .input('recipeId', sql.Int, recipeId)
+            .query(ingredientsQuery);
+
+        receta.ingredientes = ingredientsResult.recordset;
+
+        // Obtener los pasos
+        const stepsQuery = `
+            SELECT * FROM PasosReceta WHERE IdReceta = @recipeId ORDER BY nro;
+        `;
+        const stepsResult = await pool.request()
+            .input('recipeId', sql.Int, recipeId)
+            .query(stepsQuery);
+
+        receta.pasos = stepsResult.recordset;
+
+        // Obtener los tags
+        const tagsQuery = `
+            SELECT t.* FROM Tags t
+            INNER JOIN TagRecetas tr ON t.id = tr.Idtag
+            WHERE tr.IdReceta = @recipeId;
+        `;
+        const tagsResult = await pool.request()
+            .input('recipeId', sql.Int, recipeId)
+            .query(tagsQuery);
+
+        receta.tags = tagsResult.recordset;
+
+        // Obtener la información del creador
+        const creatorQuery = `
+            SELECT u.id, u.nombreusuario, u.imagen FROM Usuarios u
+            WHERE u.id = @creatorId;
+        `;
+        const creatorResult = await pool.request()
+            .input('creatorId', sql.Int, receta.idcreador)
+            .query(creatorQuery);
+
+        receta.creador = creatorResult.recordset.length > 0 ? creatorResult.recordset[0] : null;
+
+        return receta;
+    } catch (error) {
+        console.error('Error al obtener la receta completa:', error);
+        throw error;
+    }
+}
+
 }
   
 

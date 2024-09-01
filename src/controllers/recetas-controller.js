@@ -71,4 +71,15 @@ router.get('/recipesByTag/:tagId/:userId', async (req, res) => {
   }
 });
 
+router.get('/fullRecipe/:id', async (req,res) => {
+    const { id } = req.params;
+
+  try {
+      const recetaCompleta = await recetasService.getFullRecipeById(id);
+      res.json(recetaCompleta);
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
+})
+
 export default router;

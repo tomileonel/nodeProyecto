@@ -262,20 +262,42 @@ export default class RecetasRepository {
     let pool;
     try {
       pool = await getConnection();
-      const query = `
-        SELECT r.*
+      
+      // Primero, obtener las recetas del usuario que coincidan con el tag seleccionado.
+      const userRecipesQuery = `
+        SELECT r.*, u.nombre AS creadorNombre, u.imagen AS creadorFoto
         FROM recetas r
+        JOIN Usuarios u ON r.idCreador = u.id
         JOIN TagRecetas TR ON TR.idReceta = r.id
         WHERE TR.idTag = @tagId
           AND r.idCreador = @userId
       `;
-
-      const result = await pool.request()
+  
+      const userRecipesResult = await pool.request()
         .input('tagId', sql.Int, tagId)
         .input('userId', sql.Int, userId)
-        .query(query);
-
-      return result.recordset;
+        .query(userRecipesQuery);
+  
+      let recipes = userRecipesResult.recordset;
+  
+      // Si el usuario no tiene recetas con ese tag, obtener todas las recetas con ese tag.
+      if (recipes.length === 0) {
+        const allRecipesQuery = `
+          SELECT r.*, u.nombre AS creadorNombre, u.imagen AS creadorFoto
+          FROM recetas r
+          JOIN Usuarios u ON r.idCreador = u.id
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag = @tagId
+        `;
+  
+        const allRecipesResult = await pool.request()
+          .input('tagId', sql.Int, tagId)
+          .query(allRecipesQuery);
+  
+        recipes = allRecipesResult.recordset;
+      }
+  
+      return recipes;
     } finally {
       if (pool) {
         await pool.close();

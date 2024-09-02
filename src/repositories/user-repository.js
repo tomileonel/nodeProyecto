@@ -16,18 +16,6 @@ class UserRepository {
     }
   }
 
-  async getUserById(id) {
-    try {
-      const pool = await getConnection();
-      const result = await pool.request()
-        .input('id', sql.Int, id)
-        .query('SELECT * FROM dbo.Usuarios WHERE id = @id'); // Actualizado el nombre de la tabla
-      return result.recordset[0];
-    } catch (error) {
-      console.error(`Error en la consulta de usuario por ID: ${error}`);
-      throw error;
-    }
-  }
 
   async getUserById(id) {
     try {

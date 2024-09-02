@@ -80,7 +80,25 @@ export default class RecetasService {
         console.error(`Error en el servicio al obtener la receta completa: ${error.message}`);
         throw error;
     }
-}
+  }
+  async getPasosCount(id){
+    try {
+      const pasos = await this.recetasRepository.pasosCount(id);
+      return pasos;
+    } catch (error) {
+      console.error(`Error en el servicio al obtener los pasos: ${error.message}`);
+        throw error;
+    }
+  }
+  async getMinutos(id, paso){
+    try {
+      const tiempo = await this.recetasRepository.minsReceta(id, paso);
+      return tiempo
+    } catch (error) {
+      console.error(`Error en el servicio al obtener los minutos: ${error.message}`);
+        throw error;
+    }
+  }
 
 }
 

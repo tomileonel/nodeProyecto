@@ -81,5 +81,24 @@ router.get('/fullRecipe/:id', async (req,res) => {
       res.status(500).json({ message: error.message });
   }
 })
+router.get('/getPasosCount/:id', async (req,res) => {
+  const { id } = req.params;
+  try {
+    const pasos = await recetasService.getPasosCount(id);
+    res.json(pasos)
+  } catch (error) {
+    res.status(500).json({message: error.message});
+  }
+})
+router.get('/getTempo/:id/:paso', async (req,res) => {
+  const { id } = req.params;
+  const { paso } = req.params;
+  try {
+    const pasos = await recetasService.getMinutos(id, paso);
+    res.json(pasos)
+  } catch (error) {
+    res.status(500).json({message: error.message});
+  }
+} )
 
 export default router;

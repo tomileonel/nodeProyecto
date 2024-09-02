@@ -90,15 +90,7 @@ export default class RecetasService {
         throw error;
     }
   }
-  async getMinutos(id, paso){
-    try {
-      const tiempo = await this.recetasRepository.minsReceta(id, paso);
-      return tiempo
-    } catch (error) {
-      console.error(`Error en el servicio al obtener los minutos: ${error.message}`);
-        throw error;
-    }
-  }
+ 
 
 }
 

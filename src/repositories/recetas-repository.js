@@ -385,7 +385,8 @@ export default class RecetasRepository {
       const result = await pool.request()
         .input('id', sql.Int, id)
         .query(`
-          SELECT COUNT(nro) FROM PasosReceta WHERE idReceta = @id
+          SELECT * FROM PasosReceta WHERE idReceta = @id
+      
         `);
       return result.recordset;
     } finally {
@@ -394,21 +395,7 @@ export default class RecetasRepository {
       }
     }
   }
-  async minsReceta(id, paso){
-    let pool;
-    try {
-      pool = await getConnection();
-      const result = await pool.request()
-      .input('id', sql.Int, id)
-      .input('paso', sql.Int, paso)
-      .query(`SELECT duracionMin FROM PasosReceta WHERE idReceta = @id AND nro = @paso`)
-      return result.recordset;
-    }finally{
-      if(pool){
-        await pool.close();
-      }
-    }
-  }
+  
   async getFullRecipeById(recipeId) {
     try {
         const pool = await getConnection();

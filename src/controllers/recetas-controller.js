@@ -1,9 +1,13 @@
+// src/controllers/recetas-controller.js
 import { Router } from 'express';
 import RecetasService from '../services/recetas-service.js';
+import IngredientesService from '../services/ingredientes-service.js'; // Asegúrate de que este archivo existe
 
 const router = Router();
 const recetasService = new RecetasService();
+const ingredientesService = new IngredientesService();
 
+// Ruta para obtener recetas por etiqueta
 router.get('/byTag/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
@@ -14,6 +18,7 @@ router.get('/byTag/:userId', async (req, res) => {
   }
 });
 
+// Ruta para obtener recetas filtradas
 router.get('/recipes', async (req, res) => {
   const { search, tiempoMax, caloriasMax, ingredientes, tags } = req.query;
 
@@ -33,6 +38,7 @@ router.get('/recipes', async (req, res) => {
   }
 });
 
+// Ruta para obtener recetas más recientes
 router.get('/novedades/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
@@ -42,16 +48,19 @@ router.get('/novedades/:userId', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-router.get('/getIdByName/:nombre', async (req,res) => {
+
+// Ruta para obtener ID de receta por nombre
+router.get('/getIdByName/:nombre', async (req, res) => {
   const { nombre } = req.params;
   try {
     const [id, status] = await recetasService.getIdporNombre(nombre);
     res.status(status).json(id);
   } catch (error) {
-    res.status(500).json({error: error.message});
+    res.status(500).json({ error: error.message });
   }
-})
+});
 
+// Ruta para obtener todas las etiquetas especiales
 router.get('/specialTags', async (req, res) => {
   try {
     const [tags, status] = await recetasService.getAllSpecialTags();
@@ -61,6 +70,7 @@ router.get('/specialTags', async (req, res) => {
   }
 });
 
+// Ruta para obtener recetas por etiqueta y usuario
 router.get('/recipesByTag/:tagId/:userId', async (req, res) => {
   const { tagId, userId } = req.params;
   try {
@@ -71,25 +81,48 @@ router.get('/recipesByTag/:tagId/:userId', async (req, res) => {
   }
 });
 
-router.get('/fullRecipe/:id', async (req,res) => {
-    const { id } = req.params;
-
+// Ruta para obtener receta completa por ID
+router.get('/fullRecipe/:id', async (req, res) => {
+  const { id } = req.params;
   try {
-      const recetaCompleta = await recetasService.getFullRecipeById(id);
-      res.json(recetaCompleta);
+    const recetaCompleta = await recetasService.getFullRecipeById(id);
+    res.json(recetaCompleta);
   } catch (error) {
-      res.status(500).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
-})
-router.get('/getPasosCount/:id', async (req,res) => {
+});
+
+// Ruta para obtener cantidad de pasos de una receta por ID
+router.get('/getPasosCount/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const pasos = await recetasService.getPasosCount(id);
-    res.json(pasos)
+    res.json(pasos);
   } catch (error) {
-    res.status(500).json({message: error.message});
+    res.status(500).json({ message: error.message });
   }
-})
+});
 
+// Ruta para obtener todos los ingredientes
+router.get('/ingredientes', async (req, res) => {
+  try {
+    const ingredientes = await ingredientesService.getIngredientes();
+    res.json(ingredientes);
+  } catch (error) {
+    console.error('Error al obtener los ingredientes:', error);
+    res.status(500).json({ error: 'Error al obtener los ingredientes' });
+  }
+});
+
+// Ruta para crear una receta
+router.post('/create', async (req, res) => {
+  const { nombre, descripcion, ingredientes, pasos, tags } = req.body;
+  try {
+    const result = await recetasService.createRecipe({ nombre, descripcion, ingredientes, pasos, tags });
+    res.status(result.status).json(result.recipe);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

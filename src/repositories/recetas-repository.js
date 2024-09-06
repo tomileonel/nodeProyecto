@@ -466,5 +466,77 @@ export default class RecetasRepository {
     }
 }
 
+async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
+  let pool;
+  try {
+    pool = await getConnection();
+
+    // Iniciar una transacción
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    const request = new sql.Request(transaction);
+
+    // Insertar la receta
+    const result = await request
+      .input('nombre', sql.VarChar, nombre)
+      .input('descripcion', sql.Text, descripcion)
+      .query(
+        `INSERT INTO Recetas (nombre, descripcion) 
+         VALUES (@nombre, @descripcion); 
+         SELECT SCOPE_IDENTITY() AS id`
+      );
+
+    const recipeId = result.recordset[0].id;
+
+    // Insertar ingredientes
+    for (const ingrediente of ingredientes) {
+      await request
+        .input('recetaId', sql.Int, recipeId)
+        .input('ingredienteId', sql.Int, ingrediente.id)
+        .input('cantidad', sql.Decimal, ingrediente.cantidad)
+        .query(
+          `INSERT INTO IngredientePorReceta (idReceta, idIngrediente, cantidad) 
+           VALUES (@recetaId, @ingredienteId, @cantidad)`
+        );
+    }
+
+    // Insertar pasos
+    for (const paso of pasos) {
+      await request
+        .input('recetaId', sql.Int, recipeId)
+        .input('numero', sql.Int, paso.numero)
+        .input('descripcion', sql.Text, paso.descripcion)
+        .query(
+          `INSERT INTO PasosReceta (idReceta, nro, descripcion) 
+           VALUES (@recetaId, @numero, @descripcion)`
+        );
+    }
+
+    // Insertar tags
+    for (const tag of tags) {
+      await request
+        .input('recetaId', sql.Int, recipeId)
+        .input('tagId', sql.Int, tag)
+        .query(
+          `INSERT INTO TagRecetas (idReceta, idTag) 
+           VALUES (@recetaId, @tagId)`
+        );
+    }
+
+    // Confirmar la transacción
+    await transaction.commit();
+
+    return { id: recipeId };
+  } catch (error) {
+    console.error(`Error al crear receta: ${error.message}`); 
+    throw error;
+  } finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+
+  }
 }
   

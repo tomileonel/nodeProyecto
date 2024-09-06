@@ -90,8 +90,14 @@ export default class RecetasService {
         throw error;
     }
   }
- 
-
+  async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
+    try {
+      const result = await this.recetasRepository.createRecipe({ nombre, descripcion, ingredientes, pasos, tags });
+      return { recipe: result, status: 201 };
+    } catch (error) {
+      console.error(`Error creating recipe: ${error}`); 
+      return { recipe: 'Error al crear la receta', status: 500 };
+    }
+  }
 }
-
-
+  

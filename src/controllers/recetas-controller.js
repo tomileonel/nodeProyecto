@@ -125,4 +125,26 @@ router.post('/create', async (req, res) => {
   }
 });
 
+
+router.get('/recipesByPrice', async (req, res) => {
+  const { search, tiempoMax, caloriasMax, ingredientes, tags, precioMin, precioMax } = req.query;
+
+  try {
+    const params = {
+      search,
+      tiempoMax: tiempoMax ? parseInt(tiempoMax, 10) : null,
+      caloriasMax: caloriasMax ? parseInt(caloriasMax, 10) : null,
+      ingredientes: ingredientes ? ingredientes.split(',').map(Number) : [],
+      tags: tags ? tags.split(',').map(Number) : [],
+      precioMin: precioMin ? parseFloat(precioMin) : null,
+      precioMax: precioMax ? parseFloat(precioMax) : null
+    };
+
+    const { recipes, status } = await recetasService.getFilteredRecipesByPrice(params);
+    res.status(status).json(recipes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}); 
+
 export default router;

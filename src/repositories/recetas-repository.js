@@ -416,7 +416,7 @@ export default class RecetasRepository {
 
         // Obtener los ingredientes
         const ingredientsQuery = `
-        SELECT i.*, ipr.detalleCant FROM Ingredientes i
+        SELECT i.*, ipr.cant FROM Ingredientes i
         INNER JOIN IngredientePorReceta ipr ON i.id = ipr.Idingrediente
         WHERE ipr.IdReceta = 1;
         `;
@@ -538,5 +538,44 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
   }
 
   }
+  // In the service
+
+
+// In the repository
+async rateReceta({ rating, recetaId, userId }) {
+  let pool;
+  try {
+    pool = await getConnection();
+    const result = await pool.request()
+      .input('rate', sql.Int, rating)
+      .input('user', sql.Int, userId)
+      .input('receta', sql.Int, recetaId)
+      .query(`INSERT INTO Rating (rating, idUsuario, idReceta) VALUES (@rate, @user, @receta)`);
+    return result;
+  } finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+  
+}
+async updateReceta({ rating, recetaId, userId }) {
+  let pool;
+  try {
+    pool = await getConnection();
+    const result = await pool.request()
+      .input('rate', sql.Int, rating)
+      .input('user', sql.Int, userId)
+      .input('receta', sql.Int, recetaId)
+      .query(`UPDATE Rating SET rating = @rate `);
+    return result;
+  } finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+  
+}
+
 }
   

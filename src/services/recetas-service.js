@@ -99,5 +99,31 @@ export default class RecetasService {
       return { recipe: 'Error al crear la receta', status: 500 };
     }
   }
+  async rateRecipe(rating, recetaId, userId) {
+    try {
+      if (rating < 1 || rating > 5) {
+        throw new Error('Rating must be between 1 and 5');
+      }
+  
+      const result = await this.recetasRepository.rateReceta({ rating, recetaId, userId });
+      return { recipe: result, status: 200 };
+    } catch (error) {
+      console.error(`Error rating recipe ${error}`);
+      return { recipe: 'Error rateando receta', status: 400 };
+    }
+  }
+  async updateRating(rating,recetaId,userId){
+    try {
+      if (rating < 1 || rating > 5) {
+        throw new Error('Rating must be between 1 and 5');
+      }
+  
+      const result = await this.recetasRepository.updateRating({ rating, recetaId, userId });
+      return { recipe: result, status: 200 };
+    } catch (error) {
+      console.error(`Error rating recipe ${error}`);
+      return { recipe: 'Error rateando receta', status: 400 };
+    }
+  }
 }
   

@@ -3,6 +3,7 @@ import { Router } from 'express';
 import RecetasService from '../services/recetas-service.js';
 import IngredientesService from '../services/ingredientes-service.js'; // Asegúrate de que este archivo existe
 
+
 const router = Router();
 const recetasService = new RecetasService();
 const ingredientesService = new IngredientesService();
@@ -124,5 +125,36 @@ router.post('/create', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+router.post('/rate/:rating/:idReceta/:idUsuario',  async (req,res) => {
+// In the controller
+const { rating, idReceta, idUsuario } = req.params;
+const parsedRating = parseInt(rating, 10);
+
+if (isNaN(parsedRating)) {
+  return res.status(400).json({ error: 'Invalid rating' });
+}
+
+try {
+  const result = await recetasService.rateRecipe(parsedRating, idReceta, idUsuario);
+  res.status(result.status).json(result.recipe);
+} catch (error) {
+  res.status(400).json({ error: error.message });
+}
+})
+router.put('/updaterating/:rating/:idReceta/:idUsuario', async (req,res) => {
+  const { rating, idReceta, idUsuario } = req.params;
+  const parsedRating = parseInt(rating, 10);
+
+  if (isNaN(parsedRating)) {
+  return res.status(400).json({ error: 'Invalid rating' });
+  }
+
+  try {
+  const result = await recetasService.updateRating(parsedRating, idReceta, idUsuario);
+  res.status(result.status).json(result.recipe);
+  } catch (error) {
+  res.status(400).json({ error: error.message });
+  }
+})
 
 export default router;

@@ -487,7 +487,7 @@ export default class RecetasRepository {
         const ingredientsQuery = `
         SELECT i.*, ipr.cant FROM Ingredientes i
         INNER JOIN IngredientePorReceta ipr ON i.id = ipr.Idingrediente
-        WHERE ipr.IdReceta = 1;
+        WHERE ipr.IdReceta = @recipeId;
         `;
         const ingredientsResult = await pool.request()
             .input('recipeId', sql.Int, recipeId)

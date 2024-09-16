@@ -645,6 +645,24 @@ async updateReceta({ rating, recetaId, userId }) {
   }
   
 }
+async getRate(rid,uid) {
+  let pool;
+  try {
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('recipeId', sql.Int, rid)  
+    .input('userId', sql.Int, uid)
+      
+      .query(`
+        SELECT rating FROM Rating WHERE idReceta = @recipeId AND idUsuario = @userId 
+      `);
+    return result;
+  } finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+}
 
 }
 

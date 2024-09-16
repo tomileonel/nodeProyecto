@@ -17,10 +17,10 @@ class IngredientesService {
   }
 
 
-  async addIngredientToRecipe(idreceta, idingrediente, cantidad, detalleCant) {
+  async addIngredientToRecipe(idreceta, idingrediente, cantidad) {
     const query = `
-      INSERT INTO IngredientePorReceta (idreceta, idingrediente, cant, detalleCant)
-      VALUES (@idreceta, @idingrediente, @cant, @detalleCant)
+      INSERT INTO IngredientePorReceta (idreceta, idingrediente, cant)
+      VALUES (@idreceta, @idingrediente, @cant)
     `;
     try {
       const pool = await getConnection();
@@ -28,7 +28,6 @@ class IngredientesService {
       request.input('idreceta', sql.Int, idreceta);
       request.input('idingrediente', sql.Int, idingrediente);
       request.input('cant', sql.Decimal, cantidad);
-      request.input('detalleCant', sql.VarChar, detalleCant);
       await request.query(query);
     } catch (error) {
       console.error('Error al agregar ingrediente a receta:', error);
@@ -43,7 +42,7 @@ export async function getIngredientes(Nombre) {
   const query = `
     SELECT id, nombre AS name
     FROM ingredientes
-    WHERE nombre LIKE '%' + @Nombre + '%'
+    WHERE nombre LIKE  '%@Nombre%'
   `;
   try {
     const pool = await getConnection();

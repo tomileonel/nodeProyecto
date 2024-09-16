@@ -5,9 +5,9 @@ import { getIngredientes } from '../services/ingredientes-service.js';
 const router = express.Router();
 
 // Obtener todos los ingredientes
-router.get('/', async (req, res) => {
+router.get('/:searchTerm', async (req, res) => {
+  const searchTerm = req.params;
   try {
-    const searchTerm = req.query.search || '';
     const ingredientes = await getIngredientes(searchTerm);
     res.json(ingredientes);
   } catch (error) {

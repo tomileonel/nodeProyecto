@@ -16,7 +16,6 @@ class IngredientesService {
     }
   }
 
-
   async addIngredientToRecipe(idreceta, idingrediente, cantidad, detalleCant) {
     const query = `
       INSERT INTO IngredientePorReceta (idreceta, idingrediente, cant, detalleCant)
@@ -42,7 +41,7 @@ class IngredientesService {
 export async function getIngredientes(Nombre) {
   const query = `
     SELECT id, nombre AS name
-    FROM ingredientes
+    FROM dbo.Ingredientes  
     WHERE nombre LIKE '%' + @Nombre + '%'
   `;
   try {
@@ -56,7 +55,6 @@ export async function getIngredientes(Nombre) {
     throw error;
   }
 }
-
 
 
 export default IngredientesService;

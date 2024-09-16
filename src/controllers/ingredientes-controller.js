@@ -8,12 +8,17 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const searchTerm = req.query.search || '';
+    console.log('searchTerm:', searchTerm);
     const ingredientes = await getIngredientes(searchTerm);
+    console.log('Ingredientes:', ingredientes);
     res.json(ingredientes);
   } catch (error) {
+    console.error('Error al obtener los ingredientes:', error);
     res.status(500).json({ message: 'Error al obtener los ingredientes', error });
   }
 });
+
+
 
 
 router.post('/add-to-recipe', async (req, res) => {

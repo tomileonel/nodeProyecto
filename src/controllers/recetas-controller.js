@@ -115,16 +115,18 @@ router.get('/ingredientes', async (req, res) => {
   }
 });
 
-// Ruta para crear una receta
 router.post('/create', async (req, res) => {
   const { nombre, descripcion, ingredientes, pasos, tags } = req.body;
+  const idcreador = req.user.id; // Suponiendo que el middleware ya decodificó el token y añadió el usuario a req
+  
   try {
-    const result = await recetasService.createRecipe({ nombre, descripcion, ingredientes, pasos, tags });
+    const result = await recetasService.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
     res.status(result.status).json(result.recipe);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 router.post('/rate/:rating/:idReceta/:idUsuario',  async (req,res) => {
 // In the controller
 const { rating, idReceta, idUsuario } = req.params;

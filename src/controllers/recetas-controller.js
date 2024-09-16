@@ -158,7 +158,15 @@ router.put('/updaterating/:rating/:idReceta/:idUsuario', async (req,res) => {
   res.status(400).json({ error: error.message });
   }
 })
-
+router.get('/getrating/:recipeId/:userId', async (req,res) => {
+  const {recipeId, userId} = req.params;
+  try {
+    const result = await recetasService.getRating(recipeId,userId);
+    res.status(result.status).json(result.recipe);
+    } catch (error) {
+    res.status(400).json({ error: error.message });
+    }
+})
 
 router.get('/recipesByPrice', async (req, res) => {
   const { search, tiempoMax, caloriasMax, ingredientes, tags, precioMin, precioMax } = req.query;

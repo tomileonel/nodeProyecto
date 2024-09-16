@@ -125,5 +125,14 @@ export default class RecetasService {
       return { recipe: 'Error rateando receta', status: 400 };
     }
   }
+  async getRating(rid,uid){
+    try {
+      const result = await this.recetasRepository.getRate(rid,uid)
+      return { recipe: result, status: 200};
+    } catch (error) {
+      console.error(`Error getting the rating ${error}`);
+      return { recipe: 'Error consiguiendo el rating', status: 400 };
+    }
+  }
 }
   

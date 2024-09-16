@@ -615,6 +615,7 @@ async rateReceta({ rating, recetaId, userId }) {
   let pool;
   try {
     pool = await getConnection();
+    console.log(recetaId)
     const result = await pool.request()
       .input('rate', sql.Int, rating)
       .input('user', sql.Int, userId)
@@ -628,7 +629,7 @@ async rateReceta({ rating, recetaId, userId }) {
   }
   
 }
-async updateReceta({ rating, recetaId, userId }) {
+async updateRating({ rating, recetaId, userId }) {
   let pool;
   try {
     pool = await getConnection();
@@ -636,7 +637,7 @@ async updateReceta({ rating, recetaId, userId }) {
       .input('rate', sql.Int, rating)
       .input('user', sql.Int, userId)
       .input('receta', sql.Int, recetaId)
-      .query(`UPDATE Rating SET rating = @rate `);
+      .query(`UPDATE Rating SET rating = @rate WHERE idUsuario = @user AND idReceta = @receta`);
     return result;
   } finally {
     if (pool) {

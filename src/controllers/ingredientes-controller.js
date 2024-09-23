@@ -5,12 +5,11 @@ import { getIngredientes } from '../services/ingredientes-service.js';
 const router = express.Router();
 
 // Obtener todos los ingredientes
-router.get('/:searchTerm', async (req, res) => {
-  const searchTerm = req.params;
+router.get('/', async (req, res) => {
+  const searchTerm = req.query.search || ''; // Uso correcto de req.query
   try {
-    const searchTerm = req.query.search || '';
     console.log('searchTerm:', searchTerm);
-    const ingredientes = await getIngredientes(searchTerm);
+    const ingredientes = await getIngredientes(searchTerm); // Llamada a la función con el término de búsqueda
     console.log('Ingredientes:', ingredientes);
     res.json(ingredientes);
   } catch (error) {

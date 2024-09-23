@@ -90,9 +90,9 @@ export default class RecetasService {
         throw error;
     }
   }
-  async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
+  async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }) {
     try {
-      const result = await this.recetasRepository.createRecipe({ nombre, descripcion, ingredientes, pasos, tags });
+      const result = await this.recetasRepository.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
       return { recipe: result, status: 201 };
     } catch (error) {
       console.error(`Error creating recipe: ${error}`); 
@@ -134,5 +134,24 @@ export default class RecetasService {
       return { recipe: 'Error consiguiendo el rating', status: 400 };
     }
   }
+  async getComments(rid) {
+    try {
+      const result = await this.recetasRepository.getReviews(rid);
+      return { result: result, status: 200 };  
+    } catch (error) {
+      console.error(`Error getting comments ${error}`);
+      return { result: 'Error consiguiendo las recetas', status: 404 };
+    }
+  }
+  async postCommentary(rid,uid,msg,date){
+    try {
+      const result = await this.recetasRepository.postComment(rid,uid,msg,date);
+      return { result: result, status: 200 };  
+    } catch (error) {
+      console.error(`Error getting comments ${error}`);
+      return { result: 'Error consiguiendo las recetas', status: 404 };
+    }
+  }
+  
 }
   

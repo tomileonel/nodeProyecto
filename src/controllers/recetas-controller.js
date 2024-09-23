@@ -116,16 +116,24 @@ router.get('/ingredientes', async (req, res) => {
 });
 
 router.post('/create', async (req, res) => {
-  const { nombre, descripcion, ingredientes, pasos, tags } = req.body;
-  const idcreador = req.user.id; // Suponiendo que el middleware ya decodificó el token y añadió el usuario a req
-  
+  const { nombre, descripcion, ingredientes, pasos, tags, idcreador } = req.body;
+
+  // Verifica si el idcreador está llegando al backend
+  console.log('ID Creador recibido:', idcreador);
+
+  if (!idcreador) {
+    return res.status(400).json({ message: 'El ID del creador es obligatorio' });
+  }
+
   try {
     const result = await recetasService.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
-    res.status(result.status).json(result.recipe);
+    res.status(201).json(result.recipe);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
+
 
 router.post('/rate/:rating/:idReceta/:idUsuario',  async (req,res) => {
 // In the controller
@@ -188,5 +196,24 @@ router.get('/recipesByPrice', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }); 
+router.get('/getReviews/:recipeId', async (req,res) => {
+  const {recipeId} = req.params;
+    try{ 
+      const result = await recetasService.getComments(recipeId)
+      res.status(result.status).json(result.result);
+    }catch (error) {
+      res.status(404).json({ error: error.message});
+    }
+})
+router.post('/postComment/:recipeId/:userId', async (req,res) => {
+  const {recipeId,userId} = req.params;
+  const {msg,date} = req.query;
+  try {
+    const result = await recetasService.postCommentary(recipeId,userId,msg,date)
+    res.status(result.status).json(result.result)
+  } catch (error) {
+    res.status(400).json({error:error.message})
+  }
+})
 
 export default router;

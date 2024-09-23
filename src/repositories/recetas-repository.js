@@ -534,7 +534,7 @@ export default class RecetasRepository {
     }
 }
 
-async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
+async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }) {
   let pool;
   try {
     pool = await getConnection();
@@ -545,17 +545,30 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
 
     const request = new sql.Request(transaction);
 
-    // Insertar la receta
+    // Insertar la receta con valores predeterminados
     const result = await request
-      .input('nombre', sql.VarChar, nombre)
-      .input('descripcion', sql.Text, descripcion)
-      .query(
-        `INSERT INTO Recetas (nombre, descripcion, rating) 
-         VALUES (@nombre, @descripcion, '0'); 
-         SELECT SCOPE_IDENTITY() AS id
-         `
-      );
-
+    .input('nombre', sql.NVarChar(50), nombre)
+    .input('descripcion', sql.NVarChar(100), descripcion || "")
+    .input('rating', sql.Float, 0)
+    .input('imagen', sql.NVarChar(300), "") 
+    .input('idcreador', sql.Int, idcreador || 0) 
+    .input('tiempoMins', sql.Float, 0)
+    .input('calorias', sql.Float, 0)
+    .input('carboidratos', sql.Float, 0)
+    .input('proteina', sql.Float, 0)
+    .input('grasas', sql.Float, 0)
+    .input('precio', sql.Float, 0)
+    .input('fechaPublicacion', sql.Date, new Date()) 
+    .query(
+      `INSERT INTO Recetas 
+        (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carboidratos, proteina, grasas, precio, fechaPublicacion) 
+       VALUES 
+        (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carboidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
+       SELECT SCOPE_IDENTITY() AS id`
+    );
+  
+  console.log(result); // Agregar esta línea para verificar el contenido de result
+  
     const recipeId = result.recordset[0].id;
 
     // Insertar ingredientes
@@ -563,22 +576,29 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
       await request
         .input('recetaId', sql.Int, recipeId)
         .input('ingredienteId', sql.Int, ingrediente.id)
-        .input('cantidad', sql.Decimal, ingrediente.cantidad)
+        .input('cant', sql.Float, ingrediente.cantidad || 0)
+      
         .query(
-          `INSERT INTO IngredientePorReceta (idReceta, idIngrediente, cantidad) 
-           VALUES (@recetaId, @ingredienteId, @cantidad)`
+          `INSERT INTO IngredientePorReceta 
+            (idReceta, idIngrediente, cant) 
+           VALUES 
+            (@recetaId, @ingredienteId, @cant)`
         );
     }
 
     // Insertar pasos
     for (const paso of pasos) {
       await request
-        .input('recetaId', sql.Int, recipeId)
-        .input('numero', sql.Int, paso.numero)
-        .input('descripcion', sql.Text, paso.descripcion)
+       
+        .input('numero', sql.Int, paso.numero || 0)
+        .input('titulo', sql.VarChar(50), paso.titulo || "") // Título por defecto
+        
+        .input('duracionMin', sql.Float, paso.duracionMin || 0)
         .query(
-          `INSERT INTO PasosReceta (idReceta, nro, descripcion) 
-           VALUES (@recetaId, @numero, @descripcion)`
+          `INSERT INTO PasosReceta 
+            (idReceta, nro, titulo, descripcion, duracionMin) 
+           VALUES 
+            (@recetaId, @numero, @titulo, @descripcion, @duracionMin)`
         );
     }
 
@@ -588,8 +608,10 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
         .input('recetaId', sql.Int, recipeId)
         .input('tagId', sql.Int, tag)
         .query(
-          `INSERT INTO TagRecetas (idReceta, idTag) 
-           VALUES (@recetaId, @tagId)`
+          `INSERT INTO TagRecetas 
+            (idReceta, idTag) 
+           VALUES 
+            (@recetaId, @tagId)`
         );
     }
 
@@ -598,7 +620,16 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags }) {
 
     return { id: recipeId };
   } catch (error) {
-    console.error(`Error al crear receta: ${error.message}`); 
+    // Usar comillas invertidas para template strings
+    console.error(`Error al crear receta: ${error.message}`);
+    // Intentar revertir la transacción si hay un error
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error(`Error al hacer rollback de la transacción: ${rollbackError.message}`);
+      }
+    }
     throw error;
   } finally {
     if (pool) {
@@ -664,19 +695,50 @@ async getRate(rid,uid) {
     }
   }
 }
-async getComments(rid) {
+async getReviews(rid) {
   let pool;
-  try{
+  try {
     pool = await getConnection();
     const result = await pool.request()
-    .input('recipeId', sql.Int, rid)
-    .query(`SELECT COUNT(r.id), r.comentarios, u.nombre, u.imagen,`)
-  } finally{
-    if(pool){
+    .input('recipeId', sql.Int, rid)  
+    .query(`
+    SELECT rev.comentario, rev.fecha, u.nombreusuario, u.imagen, rec.id,
+    (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
+    (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
+  FROM Reviews rev
+  JOIN Usuarios u ON u.id = rev.idUsuario
+  JOIN Recetas rec ON rec.id = rev.idReceta
+  WHERE rec.id = @recipeId
+  ORDER BY rev.fecha DESC;
+  
+    `);
+    return result;
+  } finally {
+    if (pool) {
       await pool.close();
     }
   }
 }
+async postComment(rid,uid,msg,date){
+  let pool;
+  try {
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('recipeId', sql.Int, rid)
+    .input('userId', sql.Int, uid)
+    .input('comment', sql.NVarChar(500), msg)
+    .input('fecha', sql.DateTime, date)  
+    .query(`
+      INSERT INTO Reviews (comentario,fecha,idUsuario,idReceta) VALUES (@comment, @fecha, @userId,@recipeId)
+    `);
+    return result;
+  } finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+}
+
 }
 
 

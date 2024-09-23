@@ -4,20 +4,24 @@ import getConnection from '../configs/db-config.js';
 export default class TagsRepository {
 
     async getIngredientes(nombre) {
-        const query = `
+        let query = `
           SELECT id, nombre AS name
-          FROM dbo.Ingredientes  
-
+          FROM dbo.Ingredientes
         `;
-        if(nombre){
-            query += ` WHERE nombre LIKE '%' + @Nombre + '%'`
-            .input('Nombre', sql.NVarChar(50), nombre)
-
+        
+        // Inicializa la solicitud
+        const pool = await getConnection();
+        const request = pool.request();
+    
+        if (nombre) {
+          // Si se proporciona un nombre, añade la cláusula WHERE
+          query += ` WHERE nombre LIKE '%' + @Nombre + '%'`;
+          request.input('Nombre', sql.NVarChar(50), nombre); // Agrega el parámetro aquí
         }
+        
         try {
-          const pool = await getConnection();
-          const result = await pool.request()
-            .query(query);
+          console.log(query);
+          const result = await request.query(query); // Ejecuta la consulta
           return result.recordset;
         } catch (error) {
           console.error('Error al obtener los ingredientes:', error);

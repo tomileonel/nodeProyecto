@@ -7,10 +7,10 @@ const router = Router();
 const tagsService = new TagsService();
 
 router.get('/', async (req, res) => {
-    const { searchTerm } = req.query; // Extrae el searchTerm de los parámetros
+    const { nombre } = req.query; // Extrae el parámetro 'nombre' de la consulta
     try {
-      console.log('searchTerm:', searchTerm);
-      const ingredientes = await tagsService.buscarIngredientes(searchTerm); // Usa el servicio aquí
+      console.log('nombre:', nombre);
+      const ingredientes = await tagsService.buscarIngredientes(nombre); // Usa el servicio aquí
       console.log('Ingredientes:', ingredientes);
       res.json(ingredientes);
     } catch (error) {
@@ -18,6 +18,6 @@ router.get('/', async (req, res) => {
       res.status(500).json({ message: 'Error al obtener los ingredientes', error });
     }
   });
-
+  
 
 export default router;

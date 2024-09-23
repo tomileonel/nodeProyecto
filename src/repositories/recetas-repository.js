@@ -664,7 +664,19 @@ async getRate(rid,uid) {
     }
   }
 }
-
+async getComments(rid) {
+  let pool;
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('recipeId', sql.Int, rid)
+    .query(`SELECT COUNT(r.id), r.comentarios, u.nombre, u.imagen,`)
+  } finally{
+    if(pool){
+      await pool.close();
+    }
+  }
+}
 }
 
 

@@ -143,6 +143,7 @@ export default class RecetasService {
       return { result: 'Error consiguiendo las recetas', status: 404 };
     }
   }
+  
   async postCommentary(rid,uid,msg,date){
     try {
       const result = await this.recetasRepository.postComment(rid,uid,msg,date);
@@ -154,22 +155,26 @@ export default class RecetasService {
   }
   async getLikes(cId,uId){
     try {
-      const result = await this.recetasRepository.getLike(cId,uId);
+      const result = await this.recetasRepository.getLikes(cId,uId);
       return { result: result, status: 200 };  
     } catch (error) {
       console.error(`Error getting comments ${error}`);
       return { result: 'Error consiguiendo las recetas', status: 404 };
     }
   }
-  async likeComment(cId,uId,like){
+  async likeComment(cId, uId, like) {
+    if (!cId || !uId) {
+        throw new Error('Invalid comment ID or user ID');
+    }
     try {
-      const result = await this.recetasRepository.postLike(cId,uId, like);
-      return { result: result, status: 200 };  
+        const result = await this.recetasRepository.postLike(cId, uId, like);
+        return { result: result, status: 200 };  
     } catch (error) {
-      console.error(`Error getting comments ${error}`);
-      return { result: 'Error consiguiendo las recetas', status: 404 };
+        console.error(`Error liking comment: ${error}`);
+        return { result: 'Error liking comment', status: 404 };
     }
-  }
+}
+
   async deleteLike(cId,uId){
     try {
       const result = await this.recetasRepository.deleteLike(cId,uId);
@@ -188,5 +193,15 @@ export default class RecetasService {
       return { result: 'Error consiguiendo las recetas', status: 404 };
     }
   }
+  async getCommentIdByText(commentText) {
+    try {
+      const result = await this.recetasRepository.findCommentByText(commentText);
+      return { result: result, status: 200 };
+    } catch (error) {
+      console.error(`Error getting comment ID: ${error}`);
+      return { result: 'Error buscando el comentario', status: 404 };
+    }
+  }
+  
 }
   

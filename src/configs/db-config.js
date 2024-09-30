@@ -1,8 +1,8 @@
 import sql from 'mssql';
 
 const dbConfig = {
-  user: 'tomi',
-  password: 'helicopterO1',
+  user: 'sa',
+  password: '12345678',
   server: 'localhost', // Nombre de la instancia
   port: 1433,
   database: 'PocketChefDB',

@@ -152,6 +152,41 @@ export default class RecetasService {
       return { result: 'Error consiguiendo las recetas', status: 404 };
     }
   }
-  
+  async getLikes(cId,uId){
+    try {
+      const result = await this.recetasRepository.getLike(cId,uId);
+      return { result: result, status: 200 };  
+    } catch (error) {
+      console.error(`Error getting comments ${error}`);
+      return { result: 'Error consiguiendo las recetas', status: 404 };
+    }
+  }
+  async likeComment(cId,uId,like){
+    try {
+      const result = await this.recetasRepository.postLike(cId,uId, like);
+      return { result: result, status: 200 };  
+    } catch (error) {
+      console.error(`Error getting comments ${error}`);
+      return { result: 'Error consiguiendo las recetas', status: 404 };
+    }
+  }
+  async deleteLike(cId,uId){
+    try {
+      const result = await this.recetasRepository.deleteLike(cId,uId);
+      return { result: result, status: 200 };  
+    } catch (error) {
+      console.error(`Error getting comments ${error}`);
+      return { result: 'Error consiguiendo las recetas', status: 404 };
+    }
+  }
+  async countLikes(cId,like){
+    try {
+      const result = await this.recetasRepository.countLikes(cId,like);
+      return { result: result, status: 200 };  
+    } catch (error) {
+      console.error(`Error getting comments ${error}`);
+      return { result: 'Error consiguiendo las recetas', status: 404 };
+    }
+  }
 }
   

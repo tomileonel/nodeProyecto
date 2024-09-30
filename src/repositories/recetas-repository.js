@@ -738,6 +738,63 @@ async postComment(rid,uid,msg,date){
     }
   }
 }
+async getLikes(cId,uId){
+  let pool;
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('commentId', sql.Int, cId)
+    .input('userId', sql.Int, uId)
+    .query(`SELECT * FROM LikeComentarios WHERE idComentario = @commentId AND idUsuario = @userId`)
+  }finally{
+    if(pool){
+      await pool.close()
+    }
+  }
+}
+async postLike(cId,uId,like){
+  let pool;
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('commentId', sql.Int, cId)
+    .input('userId', sql.Int, uId)
+    .input('like', sql.Bit, like)
+    .query(`INSERT INTO LikeComentarios (review,idComentario,idUsuario) VALUES (@like,@commentId,@userId)`)
+  }finally{
+    if(pool){
+      await pool.close()
+    }
+  }
+}
+async deleteLike(cId,uId){
+  let pool;
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('commentId', sql.Int, cId)
+    .input('userId', sql.Int, uId)
+    .query(`DELETE FROM LikeComentarios WHERE idComentario = @commentId AND idUsuario = @userId`)
+  }finally{
+    if(pool){
+      await pool.close()
+    }
+  }
+}
+async countLikes(cId,like){
+  let pool;
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('commentId', sql.Int, cId)
+    .input('like', sql.Bit, like)
+    .query(`SELECT COUNT(*) FROM LikeComentarios WHERE idComentario = @commentId AND review = @like `)
+  }finally{
+    if(pool){
+      await pool.close()
+    }
+  }
+}
 
 }
 

@@ -207,7 +207,7 @@ router.get('/getReviews/:recipeId', async (req,res) => {
 })
 router.post('/postComment/:recipeId/:userId', async (req,res) => {
   const {recipeId,userId} = req.params;
-  const {msg,date} = req.query;
+  const {msg,date} = req.body   ;
   try {
     const result = await recetasService.postCommentary(recipeId,userId,msg,date)
     res.status(result.status).json(result.result)
@@ -215,5 +215,52 @@ router.post('/postComment/:recipeId/:userId', async (req,res) => {
     res.status(400).json({error:error.message})
   }
 })
+router.delete('/deleteComment/:recipeId/:userId', async (req,res) => {
+  const {recipeId, userId} = req.params;
+  const {msg,date} = req.body
+  try {
+    
+  } catch (error) {
+    
+  }
+})
+router.get('/getLikes/:commentId/:userId', async (req,res) => {
+  const {commentId,userId} = req.params;
+  try {
+    const result = await recetasService.getLikes(commentId,userId)
+    res.status(result.status).json(result.result)
+  } catch (error) {
+    res.status(400).json({error:error.message})
+  }
+})
+router.post('/likeComment/:commentId/:userId', async (req,res) => {
+  const {commentId,userId} = req.params;
+  const like = req.body
+  try {
+    const result = await recetasService.likeComment(commentId,userId,like)
+    res.status(result.status).json(result.result)
+  } catch (error) {
+    res.status(400).json({error:error.message})
+  }
+})
+router.delete('/deleteLike/:commentId/:userId', async (req,res) => {
+  const {commentId,userId} = req.params;
+  try {
+    const result = await recetasService.deleteLike(commentId,userId)
+    res.status(result.status).json(result.result)
+  } catch (error) {
+    res.status(400).json({error:error.message})
+  }
+})
+router.get('/countLikes/:commentId', async (req, res) => {
+  const { commentId } = req.params; // Cambia esto para obtener commentId correctamente
+  const like = req.body.like; // Cambia esto para obtener el valor `like` del cuerpo
+  try {
+    const result = await recetasService.countLikes(commentId, like);
+    res.status(result.status).json(result.result);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
 
 export default router;

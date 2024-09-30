@@ -3,10 +3,10 @@ import getConnection from '../configs/db-config.js';
 
 export default class TagsRepository {
 
-    async getIngredientes(nombre) {
+    async getTags(nombre) {
         let query = `
-          SELECT id, nombre AS name
-          FROM dbo.Ingredientes
+          SELECT *
+          FROM dbo.Tags
         `;
         
         // Inicializa la solicitud
@@ -24,7 +24,7 @@ export default class TagsRepository {
           const result = await request.query(query); // Ejecuta la consulta
           return result.recordset;
         } catch (error) {
-          console.error('Error al obtener los ingredientes:', error);
+          console.error('Error al obtener los tags:', error);
           throw error;
         }
       }

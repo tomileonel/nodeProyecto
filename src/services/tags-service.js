@@ -5,12 +5,12 @@ export default class TagsService {
     this.TagsRepository = new TagsRepository();
   }
 
-  async buscarIngredientes(nombre) {
+  async buscarTags(nombre) {
     try {
-      const ingredientes = await  this.TagsRepository.getIngredientes(nombre);
-      return ingredientes;
+      const tags = await  this.TagsRepository.getTags(nombre);
+      return tags;
     } catch (error) {
-      console.error('Error en el servicio de ingredientes:', error);
+      console.error('Error en el servicio de tags:', error);
       throw error; // Lanza el error para manejarlo en el controlador
     }
   }

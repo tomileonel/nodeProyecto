@@ -10,12 +10,12 @@ router.get('/', async (req, res) => {
     const { nombre } = req.query; // Extrae el parámetro 'nombre' de la consulta
     try {
       console.log('nombre:', nombre);
-      const ingredientes = await tagsService.buscarIngredientes(nombre); // Usa el servicio aquí
-      console.log('Ingredientes:', ingredientes);
-      res.json(ingredientes);
+      const tags = await tagsService.buscarTags(nombre); // Usa el servicio aquí
+      console.log('Tags:', tags);
+      res.json(tags);
     } catch (error) {
-      console.error('Error al obtener los ingredientes:', error);
-      res.status(500).json({ message: 'Error al obtener los ingredientes', error });
+      console.error('Error al obtener los tags:', error);
+      res.status(500).json({ message: 'Error al obtener los tags', error });
     }
   });
   

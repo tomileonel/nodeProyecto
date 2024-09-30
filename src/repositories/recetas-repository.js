@@ -35,7 +35,7 @@ export default class RecetasRepository {
       `;
 
       const request = pool.request();
-      userTags.forEach((tag, index) => {
+      userTags.forEach((tag, index) => {      
         request.input(`tag${index}`, sql.Int, tag);
       });
       request.input('totalTags', sql.Int, userTags.length);

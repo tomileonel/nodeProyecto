@@ -252,9 +252,8 @@ router.delete('/deleteLike/:commentId/:userId', async (req,res) => {
     res.status(400).json({error:error.message})
   }
 })
-router.get('/countLikes/:commentId', async (req, res) => {
-  const { commentId } = req.params; // Cambia esto para obtener commentId correctamente
-  const like = req.query; // Cambia esto para obtener el valor `like` del cuerpo
+router.get('/countLikes/:commentId/:like', async (req, res) => {
+  const { commentId, like } = req.params; // Cambia esto para obtener commentId correctamente 
   try {
     const result = await recetasService.countLikes(commentId, like);
     res.status(result.status).json(result.result);

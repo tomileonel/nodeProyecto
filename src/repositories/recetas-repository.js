@@ -713,7 +713,7 @@ async getReviews(rid) {
     const result = await pool.request()
     .input('recipeId', sql.Int, rid)  
     .query(`
-    SELECT rev.comentario, rev.fecha, u.nombreusuario, u.imagen, rec.id,
+    SELECT rev.comentario, rev.fecha, rev.id, u.nombreusuario, u.imagen, rec.id,
     (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
     (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
   FROM Reviews rev
@@ -749,86 +749,40 @@ async postComment(rid,uid,msg,date){
     }
   }
 }
-async getLikes(cId,uId){
-  let pool;
-  try{
-    pool = await getConnection();
-    const result = await pool.request()
-    .input('commentId', sql.Int, cId)
-    .input('userId', sql.Int, uId)
-    .query(`SELECT * FROM LikeComentarios WHERE idComentario = @commentId AND idUsuario = @userId`)
-    return result;
-  }finally{
-    if(pool){
-      await pool.close()
-    }
-  }
-}
-async postLike(cId, uId, like) {
-  console.log(cId);
+async deleteComment(msg,userId){
   let pool;
   try {
-      pool = await getConnection();
-
-      // Comprobar si el comentario existe
-      const commentCheck = await pool.request()
-          .input('commentId', sql.Int, cId)
-          .query(`SELECT COUNT(*) as count FROM Reviews WHERE id = @commentId`);
-
-      if (commentCheck.recordset[0].count === 0) {
-          throw new Error('Comment ID does not exist');
-      }
-
-      // Comprobar si el usuario existe
-      const userCheck = await pool.request()
-          .input('userId', sql.Int, uId)
-          .query(`SELECT COUNT(*) as count FROM Usuarios WHERE id = @userId`); // Asegúrate de que el nombre de la tabla es correcto
-
-      if (userCheck.recordset[0].count === 0) {
-          throw new Error('User ID does not exist');
-      }
-
-      // Realiza la inserción si las verificaciones anteriores son correctas
-      const result = await pool.request()
-          .input('commentId', sql.Int, cId)
-          .input('userId', sql.Int, uId)
-          .input('like', sql.Bit, like)
-          .query(`INSERT INTO LikeComentarios (review, idComentario, idUsuario) VALUES (@like, @commentId, @userId)`);
-          return result;
-  } finally {
-      if (pool) {
-          await pool.close();
-      }
-  }
-}
-
-async deleteLike(cId,uId){
-  let pool;
-  try{
     pool = await getConnection();
     const result = await pool.request()
-    .input('commentId', sql.Int, cId)
-    .input('userId', sql.Int, uId)
-    .query(`DELETE FROM LikeComentarios WHERE idComentario = @commentId AND idUsuario = @userId`)
+    
+    .input('userId', sql.Int, userId)
+    .input('comment', sql.NVarChar(500), msg)
+    .query(`
+      DELETE FROM Reviews WHERE comentario = @comment AND idUsuario = @userId 
+    `);
     return result;
-  }finally{
-    if(pool){
-      await pool.close()
+  } finally {
+    if (pool) {
+      await pool.close();
     }
   }
 }
-async countLikes(cId,like){
+async updateComment(oldmsg,userId,msg,date){
   let pool;
-  try{
+  try {
     pool = await getConnection();
     const result = await pool.request()
-    .input('commentId', sql.Int, cId)
-    .input('like', sql.Bit, like)
-    .query(`SELECT COUNT(*) FROM LikeComentarios WHERE idComentario = @commentId AND review = @like `)
+    .input('mensaje', sql.NVarChar(500), oldmsg)
+    .input('userId', sql.Int, userId)
+    .input('comment', sql.NVarChar(500), msg)
+    .input('fecha', sql.DateTime, date)  
+    .query(`
+      UPDATE Reviews SET comentario = @comment, fecha = @fecha WHERE idUsuario = @userId AND comentario = @mensaje
+    `);
     return result;
-  }finally{
-    if(pool){
-      await pool.close()
+  } finally {
+    if (pool) {
+      await pool.close();
     }
   }
 }

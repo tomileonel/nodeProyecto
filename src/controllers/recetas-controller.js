@@ -215,52 +215,29 @@ router.post('/postComment/:recipeId/:userId', async (req,res) => {
     res.status(400).json({error:error.message})
   }
 })
-router.delete('/deleteComment/:recipeId/:userId', async (req,res) => {
-  const {recipeId, userId} = req.params;
-  const {msg,date} = req.body
+router.delete('/deleteComment/:msg/:userId', async (req,res) => {
+  const {msg, userId} = req.params;
+ 
   try {
-    
-  } catch (error) {
-    
-  }
-})
-router.get('/getLikes/:commentId/:userId', async (req,res) => {
-  const {commentId,userId} = req.params;
-  try {
-    const result = await recetasService.getLikes(commentId,userId)
-    res.status(result.status).json(result.result)
+    console.log(userId)
+    const result = await recetasService.deleteCommentary(msg,userId)
+    res.status(result.status).json("succesfuly deleted");
   } catch (error) {
     res.status(400).json({error:error.message})
   }
 })
-router.post('/likeComment/:commentId/:userId', async (req,res) => {
-  const {commentId,userId} = req.params;
-  const like = req.body
+router.put('/updateComment/:oldmsg/:userId', async (req,res) => {
+  const {oldmsg,userId} = req.params;
+  const {msg} = req.body;
+  const ahora = new Date();
+  const date = ahora.toLocaleString();
   try {
-    const result = await recetasService.likeComment(commentId,userId,like)
-    res.status(result.status).json(result.result)
+    const result = await recetasService.updateCommentary(oldmsg,userId,msg,date)
+    res.status(result.status).json(`succesfuly updated: old commentary: ${oldmsg} new commentary ${msg}`)
   } catch (error) {
     res.status(400).json({error:error.message})
   }
 })
-router.delete('/deleteLike/:commentId/:userId', async (req,res) => {
-  const {commentId,userId} = req.params;
-  try {
-    const result = await recetasService.deleteLike(commentId,userId)
-    res.status(result.status).json(result.result)
-  } catch (error) {
-    res.status(400).json({error:error.message})
-  }
-})
-router.get('/countLikes/:commentId/:like', async (req, res) => {
-  const { commentId, like } = req.params; // Cambia esto para obtener commentId correctamente 
-  try {
-    const result = await recetasService.countLikes(commentId, like);
-    res.status(result.status).json(result.result);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
 router.get('/getCommentIdByText/:commentText', async (req, res) => {
   const { commentText } = req.params;
   try {

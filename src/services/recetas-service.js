@@ -153,44 +153,23 @@ export default class RecetasService {
       return { result: 'Error consiguiendo las recetas', status: 404 };
     }
   }
-  async getLikes(cId,uId){
+  async deleteCommentary(msg,userId){
     try {
-      const result = await this.recetasRepository.getLikes(cId,uId);
-      return { result: result, status: 200 };  
+      const result = await this.recetasRepository.deleteComment(msg,userId);
+      
+      return {status: 204};
     } catch (error) {
-      console.error(`Error getting comments ${error}`);
-      return { result: 'Error consiguiendo las recetas', status: 404 };
+      console.error(`Error deleting comment ${error}`);
+      return { result: 'Error intentando borrar el comentario', status: 400 };
     }
   }
-  async likeComment(cId, uId, like) {
-    if (!cId || !uId) {
-        throw new Error('Invalid comment ID or user ID');
-    }
+  async updateCommentary(oldmsg,userId,msg,date){
     try {
-        const result = await this.recetasRepository.postLike(cId, uId, like);
-        return { result: result, status: 200 };  
+      const result = await this.recetasRepository.updateComment(oldmsg,userId,msg,date);
+      return {status: 204, result: result};
     } catch (error) {
-        console.error(`Error liking comment: ${error}`);
-        return { result: 'Error liking comment', status: 404 };
-    }
-}
-
-  async deleteLike(cId,uId){
-    try {
-      const result = await this.recetasRepository.deleteLike(cId,uId);
-      return { result: result, status: 200 };  
-    } catch (error) {
-      console.error(`Error getting comments ${error}`);
-      return { result: 'Error consiguiendo las recetas', status: 404 };
-    }
-  }
-  async countLikes(cId,like){
-    try {
-      const result = await this.recetasRepository.countLikes(cId,like);
-      return { result: result, status: 200 };  
-    } catch (error) {
-      console.error(`Error getting comments ${error}`);
-      return { result: 'Error consiguiendo las recetas', status: 404 };
+      console.error(`Error updating comment ${error}`);
+      return { result: 'Error intentando borrar el comentario', status: 400 };
     }
   }
   async getCommentIdByText(commentText) {

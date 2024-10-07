@@ -22,7 +22,7 @@ router.get('/byTag/:userId', async (req, res) => {
 // Ruta para obtener recetas filtradas
 router.get('/recipes', async (req, res) => {
   const { search, tiempoMax, caloriasMax, ingredientes, tags } = req.query;
-
+  
   try {
     const params = {
       search,

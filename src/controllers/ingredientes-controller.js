@@ -1,5 +1,7 @@
 import express from 'express';
 import IngredientesService from '../services/ingredientes-service.js';
+import db from '../configs/db-config.js';
+import sql from 'mssql';
 
 const router = express.Router();
 const ingredientesService = new IngredientesService();
@@ -36,7 +38,50 @@ router.post('/add-to-recipe', async (req, res) => {
   }
 });
 
-router.post('/api/ingredientePorReceta', async (req, res) => {
+router.post('/calcular-nutricion', async (req, res) => {
+  const { ingredientId, quantity } = req.body;
+
+  if (!ingredientId || !quantity) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  try {
+    // Consulta a la base de datos para obtener los datos del ingrediente
+    const result = await db.query(
+      'SELECT nombre, calorias, carbohidratos, proteinas, grasas FROM Ingredientes WHERE id = @ingredientId',
+      { replacements: { ingredientId }, type: db.QueryTypes.SELECT }
+    );
+
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Ingrediente no encontrado' });
+    }
+
+    const ingredient = result[0];
+
+    // Realiza los cálculos basados en la cantidad ingresada
+    const factor = quantity / 100;
+    const calorias = (ingredient.calorias * factor).toFixed(2);
+    const carbohidratos = (ingredient.carbohidratos * factor).toFixed(2);
+    const proteina = (ingredient.proteinas * factor).toFixed(2);
+    const grasas = (ingredient.grasas * factor).toFixed(2);
+
+    // Devolver los datos calculados
+    res.json({
+      id: ingredientId,
+      nombre: ingredient.nombre,
+      quantity,
+      calorias,
+      carbohidratos,
+      proteina,
+      grasas
+    });
+  } catch (error) {
+    console.error('Error al calcular la información nutricional:', error);
+    res.status(500).json({ error: 'Error al calcular la información nutricional' });
+  }
+});
+
+router.post('/ingredientePorReceta', async (req, res) => {
   const { idreceta, idingrediente, cant } = req.body;
   console.log('Datos recibidos:', { idreceta, idingrediente, cant }); // Para depuración
 

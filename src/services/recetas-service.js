@@ -95,10 +95,11 @@ export default class RecetasService {
       const result = await this.recetasRepository.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
       return { recipe: result, status: 201 };
     } catch (error) {
-      console.error(`Error creating recipe: ${error}`); 
+      console.error(`Error creating recipe: ${error}`);
       return { recipe: 'Error al crear la receta', status: 500 };
     }
   }
+  
   async rateRecipe(rating, recetaId, userId) {
     try {
       if (rating < 1 || rating > 5) {

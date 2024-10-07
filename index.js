@@ -1,4 +1,3 @@
-// index.js
 import express from 'express';
 import cors from 'cors';
 import Recetas from './src/controllers/recetas-controller.js';
@@ -18,7 +17,7 @@ app.use('/api/recetas', Recetas);
 app.use('/api/favoritos', Favoritos);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/ingredientes', ingredientesRoutes);
+app.use('/api/ingredientes', ingredientesRoutes); // Esto sigue igual
 app.use('/api/tags', Tags);
 
 app.listen(port, () => {

@@ -31,7 +31,7 @@ export default class RecetasRepository {
           HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
         )
         GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
-                 r.carboidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
+                 r.carbohidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
       `;
 
       const request = pool.request();
@@ -423,7 +423,7 @@ export default class RecetasRepository {
     // Agrupar por todos los campos de recetas y añadir el ordenamiento por rating
     query += `
       GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, 
-               r.calorias, r.carboidratos, r.proteina, r.grasas, r.precio, 
+               r.calorias, r.carbohidratos, r.proteina, r.grasas, r.precio, 
                r.fechaPublicacion, r.descripcion
       ORDER BY r.rating DESC
     `;
@@ -544,7 +544,6 @@ export default class RecetasRepository {
         throw error;
     }
 }
-
 async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }) {
   let pool;
   try {
@@ -554,56 +553,83 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
 
-    const request = new sql.Request(transaction);
+    let request = new sql.Request(transaction);
 
-    // Insertar la receta con valores predeterminados
+    // Insertar la receta inicialmente sin calorías
     const result = await request
-    .input('nombre', sql.NVarChar(50), nombre)
-    .input('descripcion', sql.NVarChar(100), descripcion || "")
-    .input('rating', sql.Float, 0)
-    .input('imagen', sql.NVarChar(300), "") 
-    .input('idcreador', sql.Int, idcreador || 0) 
-    .input('tiempoMins', sql.Float, 0)
-    .input('calorias', sql.Float, 0)
-    .input('carboidratos', sql.Float, 0)
-    .input('proteina', sql.Float, 0)
-    .input('grasas', sql.Float, 0)
-    .input('precio', sql.Float, 0)
-    .input('fechaPublicacion', sql.Date, new Date()) 
-    .query(
-      `INSERT INTO Recetas 
-        (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carboidratos, proteina, grasas, precio, fechaPublicacion) 
-       VALUES 
-        (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carboidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
-       SELECT SCOPE_IDENTITY() AS id`
-    );
-  
-  console.log(result); // Agregar esta línea para verificar el contenido de result
-  
+      .input('nombre', sql.NVarChar(50), nombre)
+      .input('descripcion', sql.NVarChar(100), descripcion || "")
+      .input('rating', sql.Float, 0)
+      .input('imagen', sql.NVarChar(300), "")
+      .input('idcreador', sql.Int, idcreador || 0)
+      .input('tiempoMins', sql.Float, 0)
+      .input('calorias', sql.Float, 0) // Puede ser NULL o puedes omitirlo si tu base de datos lo permite
+      .input('carbohidratos', sql.Float, 0) // Omite o establece como NULL
+      .input('proteina', sql.Float, 0)
+      .input('grasas', sql.Float, 0)
+      .input('precio', sql.Float, 0)
+      .input('fechaPublicacion', sql.Date, new Date())
+      .query(
+        `INSERT INTO Recetas 
+          (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carbohidratos, proteina, grasas, precio, fechaPublicacion) 
+         VALUES 
+          (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carbohidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
+         SELECT SCOPE_IDENTITY() AS id`
+      );
+
     const recipeId = result.recordset[0].id;
 
-    // Insertar ingredientes
+    // Variables para almacenar el total de calorías, carbohidratos, proteínas y grasas
+    let totalCalorias = 0;
+    let totalCarbohidratos = 0;
+    let totalProteinas = 0;
+    let totalGrasas = 0;
+
+    // Insertar ingredientes y calcular valores nutricionales
     for (const ingrediente of ingredientes) {
+      request = new sql.Request(transaction);
+
+      // Insertar ingrediente
       await request
         .input('recetaId', sql.Int, recipeId)
         .input('ingredienteId', sql.Int, ingrediente.id)
         .input('cant', sql.Float, ingrediente.cantidad || 0)
-      
         .query(
           `INSERT INTO IngredientePorReceta 
             (idReceta, idIngrediente, cant) 
            VALUES 
             (@recetaId, @ingredienteId, @cant)`
         );
+
+      // Obtener valores nutricionales del ingrediente
+      const nutricion = await request
+      
+        .query(
+          `SELECT calorias, carbohidratos, proteinas, grasas 
+           FROM Ingredientes 
+           WHERE id = @ingredienteId`
+        );
+
+      // Asegúrate de que el resultado tenga valores
+      if (nutricion.recordset.length > 0) {
+        const { calorias, carbohidratos, proteinas, grasas } = nutricion.recordset[0];
+
+        // Acumular valores multiplicados por la cantidad del ingrediente
+        totalCalorias += calorias * ingrediente.cantidad;
+        totalCarbohidratos += carbohidratos * ingrediente.cantidad;
+        totalProteinas += proteinas * ingrediente.cantidad;
+        totalGrasas += grasas * ingrediente.cantidad;
+      }
     }
 
     // Insertar pasos
     for (const paso of pasos) {
+      request = new sql.Request(transaction);
       await request
-       
+        .input('recetaId', sql.Int, recipeId)
         .input('numero', sql.Int, paso.numero || 0)
-        .input('titulo', sql.VarChar(50), paso.titulo || "") // Título por defecto
-        
+        .input('titulo', sql.VarChar(50), paso.titulo || "")
+        .input('descripcion', sql.VarChar(100), paso.descripcion || "")
         .input('duracionMin', sql.Float, paso.duracionMin || 0)
         .query(
           `INSERT INTO PasosReceta 
@@ -615,6 +641,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }
 
     // Insertar tags
     for (const tag of tags) {
+      request = new sql.Request(transaction);
       await request
         .input('recetaId', sql.Int, recipeId)
         .input('tagId', sql.Int, tag)
@@ -626,14 +653,29 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }
         );
     }
 
+    // Actualizar receta con los valores nutricionales calculados
+    request = new sql.Request(transaction);
+    await request
+      .input('recetaId', sql.Int, recipeId)
+      .input('calorias', sql.Float, totalCalorias)
+      .input('carbohidratos', sql.Float, totalCarbohidratos)
+      .input('proteinas', sql.Float, totalProteinas)
+      .input('grasas', sql.Float, totalGrasas)
+      .query(
+        `UPDATE Recetas
+         SET calorias = @calorias,
+             carbohidratos = @carbohidratos,
+             proteina = @proteinas,
+             grasas = @grasas
+         WHERE id = @recetaId`
+      );
+
     // Confirmar la transacción
     await transaction.commit();
 
     return { id: recipeId };
   } catch (error) {
-    // Usar comillas invertidas para template strings
     console.error(`Error al crear receta: ${error.message}`);
-    // Intentar revertir la transacción si hay un error
     if (transaction) {
       try {
         await transaction.rollback();
@@ -647,8 +689,9 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }
       await pool.close();
     }
   }
+}
 
-  }
+
   // In the service
 
 
@@ -713,7 +756,7 @@ async getReviews(rid) {
     const result = await pool.request()
     .input('recipeId', sql.Int, rid)  
     .query(`
-    SELECT rev.comentario, rev.fecha, u.nombreusuario, u.imagen, rec.id,
+    SELECT rev.comentario, rev.fecha, rev.id, u.nombreusuario, u.imagen, rec.id,
     (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
     (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
   FROM Reviews rev
@@ -749,86 +792,40 @@ async postComment(rid,uid,msg,date){
     }
   }
 }
-async getLikes(cId,uId){
-  let pool;
-  try{
-    pool = await getConnection();
-    const result = await pool.request()
-    .input('commentId', sql.Int, cId)
-    .input('userId', sql.Int, uId)
-    .query(`SELECT * FROM LikeComentarios WHERE idComentario = @commentId AND idUsuario = @userId`)
-    return result;
-  }finally{
-    if(pool){
-      await pool.close()
-    }
-  }
-}
-async postLike(cId, uId, like) {
-  console.log(cId);
+async deleteComment(msg,userId){
   let pool;
   try {
-      pool = await getConnection();
-
-      // Comprobar si el comentario existe
-      const commentCheck = await pool.request()
-          .input('commentId', sql.Int, cId)
-          .query(`SELECT COUNT(*) as count FROM Reviews WHERE id = @commentId`);
-
-      if (commentCheck.recordset[0].count === 0) {
-          throw new Error('Comment ID does not exist');
-      }
-
-      // Comprobar si el usuario existe
-      const userCheck = await pool.request()
-          .input('userId', sql.Int, uId)
-          .query(`SELECT COUNT(*) as count FROM Usuarios WHERE id = @userId`); // Asegúrate de que el nombre de la tabla es correcto
-
-      if (userCheck.recordset[0].count === 0) {
-          throw new Error('User ID does not exist');
-      }
-
-      // Realiza la inserción si las verificaciones anteriores son correctas
-      const result = await pool.request()
-          .input('commentId', sql.Int, cId)
-          .input('userId', sql.Int, uId)
-          .input('like', sql.Bit, like)
-          .query(`INSERT INTO LikeComentarios (review, idComentario, idUsuario) VALUES (@like, @commentId, @userId)`);
-          return result;
-  } finally {
-      if (pool) {
-          await pool.close();
-      }
-  }
-}
-
-async deleteLike(cId,uId){
-  let pool;
-  try{
     pool = await getConnection();
     const result = await pool.request()
-    .input('commentId', sql.Int, cId)
-    .input('userId', sql.Int, uId)
-    .query(`DELETE FROM LikeComentarios WHERE idComentario = @commentId AND idUsuario = @userId`)
+    
+    .input('userId', sql.Int, userId)
+    .input('comment', sql.NVarChar(500), msg)
+    .query(`
+      DELETE FROM Reviews WHERE comentario = @comment AND idUsuario = @userId 
+    `);
     return result;
-  }finally{
-    if(pool){
-      await pool.close()
+  } finally {
+    if (pool) {
+      await pool.close();
     }
   }
 }
-async countLikes(cId,like){
+async updateComment(oldmsg,userId,msg,date){
   let pool;
-  try{
+  try {
     pool = await getConnection();
     const result = await pool.request()
-    .input('commentId', sql.Int, cId)
-    .input('like', sql.Bit, like)
-    .query(`SELECT COUNT(*) FROM LikeComentarios WHERE idComentario = @commentId AND review = @like `)
+    .input('mensaje', sql.NVarChar(500), oldmsg)
+    .input('userId', sql.Int, userId)
+    .input('comment', sql.NVarChar(500), msg)
+    .input('fecha', sql.DateTime, date)  
+    .query(`
+      UPDATE Reviews SET comentario = @comment, fecha = @fecha WHERE idUsuario = @userId AND comentario = @mensaje
+    `);
     return result;
-  }finally{
-    if(pool){
-      await pool.close()
+  } finally {
+    if (pool) {
+      await pool.close();
     }
   }
 }

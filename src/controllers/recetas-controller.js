@@ -124,7 +124,7 @@ router.post('/create', async (req, res) => {
   if (!idcreador) {
     return res.status(400).json({ message: 'El ID del creador es obligatorio' });
   }
-
+      
   try {
     const result = await recetasService.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
     res.status(201).json(result.recipe);

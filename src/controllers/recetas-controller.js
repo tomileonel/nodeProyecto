@@ -229,7 +229,7 @@ router.delete('/deleteComment/:msg/:userId', async (req,res) => {
 router.put('/updateComment/:oldmsg/:userId', async (req,res) => {
   const {oldmsg,userId} = req.params;
   const {msg} = req.body;
-  const ahora = new Date();
+  const ahora = new Date().toISOString();
   const date = ahora.toLocaleString();
   try {
     const result = await recetasService.updateCommentary(oldmsg,userId,msg,date)

@@ -72,7 +72,7 @@ export default class FavoritosRepository {
             const result = await request
                 .input('id', sql.Int, userId)
                 .query(`
-                    SELECT r.nombre, r.rating, r.tiempoMins, r.calorias, r.carboidratos, r.proteina, r.grasas, r.precio,r.imagen, f.idUsuario, f.fechaAgregado 
+                    SELECT r.nombre, r.rating, r.tiempoMins, r.calorias, r.carbohidratos, r.proteina, r.grasas, r.precio,r.imagen, f.idUsuario, f.fechaAgregado 
                     FROM Favoritos f
                     JOIN Recetas r ON r.id = f.idReceta 
                     WHERE f.idUsuario = @id

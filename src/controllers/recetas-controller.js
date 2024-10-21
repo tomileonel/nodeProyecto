@@ -19,6 +19,16 @@ router.get('/byTag/:userId', async (req, res) => {
   }
 });
 
+router.get('/byUser/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const [recipes, status] = await recetasService.getRecipesByUser(userId);
+    res.status(status).json(recipes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Ruta para obtener recetas filtradas
 router.get('/recipes', async (req, res) => {
   const { search, tiempoMax, caloriasMax, ingredientes, tags } = req.query;

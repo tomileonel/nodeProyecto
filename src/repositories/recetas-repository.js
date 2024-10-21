@@ -138,6 +138,28 @@ export default class RecetasRepository {
     }
   }
 
+  async getRecipesByUser(userId) {
+    let pool;
+    try {
+      pool = await getConnection();
+      const result = await pool.request()
+        .input('userId', sql.Int, userId)
+        .query(`
+          SELECT * 
+          FROM Recetas 
+          WHERE idcreador = @userId
+        `);
+        console.log(userId)
+        console.log(result)
+      return result;
+
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+
   async getRecipesByTagAndUser(tagId, userTags) {
     let pool;
     try {

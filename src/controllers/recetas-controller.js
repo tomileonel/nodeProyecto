@@ -1,12 +1,25 @@
 // src/controllers/recetas-controller.js
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
 import RecetasService from '../services/recetas-service.js';
-import IngredientesService from '../services/ingredientes-service.js'; // Asegúrate de que este archivo existe
+import IngredientesService from '../services/ingredientes-service.js';
 
 
 const router = Router();
 const recetasService = new RecetasService();
 const ingredientesService = new IngredientesService();
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'img/'); // Cambiamos la carpeta de destino a 'img/'
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Nombre único basado en la fecha
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Ruta para obtener recetas por etiqueta
 router.get('/byTag/:userId', async (req, res) => {
@@ -125,24 +138,33 @@ router.get('/ingredientes', async (req, res) => {
   }
 });
 
-router.post('/create', async (req, res) => {
+router.post('/create', upload.single('imagen'), async (req, res) => {
   const { nombre, descripcion, ingredientes, pasos, tags, idcreador } = req.body;
 
-  // Verifica si el idcreador está llegando al backend
-  console.log('ID Creador recibido:', idcreador);
+  // Verifica si la imagen ha sido subida
+  const imagen = req.file ? req.file.filename : null;
 
+  // Verifica si el idcreador está presente
   if (!idcreador) {
     return res.status(400).json({ message: 'El ID del creador es obligatorio' });
   }
-      
+
   try {
-    const result = await recetasService.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
+    const result = await recetasService.createRecipe({
+      nombre,
+      descripcion,
+      ingredientes: JSON.parse(ingredientes),
+      pasos: JSON.parse(pasos),
+      tags: JSON.parse(tags),
+      idcreador,
+      imagen
+    });
     res.status(201).json(result.recipe);
   } catch (error) {
+    console.error('Error al crear receta:', error);
     res.status(500).json({ error: error.message });
   }
 });
-
 
 
 router.post('/rate/:rating/:idReceta/:idUsuario',  async (req,res) => {

@@ -16,6 +16,16 @@ export default class RecetasService {
     }
   }
 
+  async getRecipesByUser(userId) {
+    try {
+      const recipes = await this.recetasRepository.getRecipesByUser(userId);
+      return [recipes, 200];
+    } catch (error) {
+      console.error(`Error fetching recipes by tag: ${error}`);
+      return ["No se encuentran recetas", 404];
+    }
+  }
+
    async getFilteredRecipes(params) {
     try {
       const [recipes, status] = await this.recetasRepository.getFilteredRecipes(params);
@@ -90,13 +100,22 @@ export default class RecetasService {
         throw error;
     }
   }
-  async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }) {
+  async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
     try {
-      const result = await this.recetasRepository.createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador });
-      return { recipe: result, status: 201 };
+      // Guardar la receta en el repositorio
+      const recipe = await this.recetasRepository.createRecipe({
+        nombre,
+        descripcion,
+        ingredientes,
+        pasos,
+        tags,
+        idcreador,
+        imagen // Pasar la imagen al repositorio
+      });
+      return { recipe, status: 201 };
     } catch (error) {
-      console.error(`Error creating recipe: ${error}`);
-      return { recipe: 'Error al crear la receta', status: 500 };
+      console.error('Error al crear receta en el servicio:', error);
+      throw new Error('Error al crear receta.');
     }
   }
   

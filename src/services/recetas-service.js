@@ -105,11 +105,13 @@ export default class RecetasService {
       if (rating < 1 || rating > 5) {
         throw new Error('Rating must be between 1 and 5');
       }
-  
+      
       const result = await this.recetasRepository.rateReceta({ rating, recetaId, userId });
+      const updateRecetasRating = await this.recetasRepository.rateReceta({rating,recetaId})
       return { recipe: result, status: 200 };
+      
     } catch (error) {
-      console.error(`Error rating recipe ${error}`);
+      console.error(`Error creating rating recipe ${error}`);
       return { recipe: 'Error rateando receta', status: 400 };
     }
   }
@@ -117,12 +119,24 @@ export default class RecetasService {
     try {
       if (rating < 1 || rating > 5) {
         throw new Error('Rating must be between 1 and 5');
-      }
-  
+      } 
+      
       const result = await this.recetasRepository.updateRating({ rating, recetaId, userId });
+
       return { recipe: result, status: 200 };
+      
     } catch (error) {
-      console.error(`Error rating recipe ${error}`);
+      console.error(`Error updating rating recipe ${error}`);
+      return { recipe: 'Error rateando receta', status: 400 };
+    }
+  }
+  async updateRatingReceta(recetaId){
+    try {
+      const result = await this.recetasRepository.updateRatingReceta(recetaId);
+      return { recipe: result, status: 200 };
+      
+    } catch (error) {
+      console.error(`Error updating the rating of the recipe ${error}`);
       return { recipe: 'Error rateando receta', status: 400 };
     }
   }

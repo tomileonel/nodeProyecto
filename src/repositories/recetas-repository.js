@@ -698,6 +698,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }
 // In the repository
 async rateReceta({ rating, recetaId, userId }) {
   let pool;
+ 
   try {
     pool = await getConnection();
     console.log(recetaId)
@@ -714,8 +715,10 @@ async rateReceta({ rating, recetaId, userId }) {
   }
   
 }
+
 async updateRating({ rating, recetaId, userId }) {
   let pool;
+
   try {
     pool = await getConnection();
     const result = await pool.request()
@@ -745,6 +748,28 @@ async getRate(rid,uid) {
     return result;
   } finally {
     if (pool) {
+      await pool.close();
+    }
+  }
+}
+async updateRatingReceta(recetaId){
+  
+  let pool  
+  try{
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('id', sql.Int, recetaId)
+    .query(`DECLARE @promedio FLOAT;
+    SET @promedio = (SELECT SUM(rating) * 1.0 / COUNT(rating) 
+    FROM Rating 
+    WHERE idReceta = @id);
+    UPDATE Recetas 
+    SET rating = @promedio 
+    WHERE id = @id;
+    `)
+    return result;
+  }finally{
+    if(pool){
       await pool.close();
     }
   }

@@ -166,6 +166,15 @@ router.put('/updaterating/:rating/:idReceta/:idUsuario', async (req,res) => {
   res.status(400).json({ error: error.message });
   }
 })
+router.patch('/ratingreceta/:idReceta', async (req,res) => {
+  const {idReceta} = req.params;
+  try {
+   const result = await recetasService.updateRatingReceta(idReceta);
+   res.status(result.status).json(result.recipe) 
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+})
 router.get('/getrating/:recipeId/:userId', async (req,res) => {
   const {recipeId, userId} = req.params;
   try {

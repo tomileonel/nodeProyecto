@@ -138,6 +138,25 @@ export default class RecetasRepository {
     }
   }
 
+  async getRecipesByUser(userId) {
+    let pool;
+    try {
+      pool = await getConnection();
+      const result = await pool.request()
+        .input('userId', sql.Int, userId)
+        .query(`
+          SELECT *
+          FROM Recetas 
+          WHERE idcreador = @userId
+        `);
+      return result.recordset
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+
   async getRecipesByTagAndUser(tagId, userTags) {
     let pool;
     try {
@@ -648,6 +667,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador }
     // Confirmar la transacción
     await transaction.commit();
 
+    
     return { id: recipeId };
   } catch (error) {
     console.error(`Error al crear receta: ${error.message}`);

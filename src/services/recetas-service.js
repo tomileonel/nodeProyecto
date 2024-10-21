@@ -16,6 +16,16 @@ export default class RecetasService {
     }
   }
 
+  async getRecipesByUser(userId) {
+    try {
+      const recipes = await this.recetasRepository.getRecipesByUser(userId);
+      return [recipes, 200];
+    } catch (error) {
+      console.error(`Error fetching recipes by tag: ${error}`);
+      return ["No se encuentran recetas", 404];
+    }
+  }
+
    async getFilteredRecipes(params) {
     try {
       const [recipes, status] = await this.recetasRepository.getFilteredRecipes(params);

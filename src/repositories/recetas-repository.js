@@ -574,62 +574,124 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
 
     let request = new sql.Request(transaction);
 
-    // Insertar la receta con la imagen
+    console.log('Ruta de imagen recibida en el repositorio:', imagen);  // Verificar que el valor de imagen se recibe correctamente
+
+    // Insertar la receta en la base de datos, incluyendo la ruta de la imagen
     const result = await request
-      .input('nombre', sql.NVarChar(50), nombre)
-      .input('descripcion', sql.NVarChar(100), descripcion || "")
-      .input('rating', sql.Float, 0)
-      .input('imagen', sql.NVarChar(300), imagen || "")  // Guardar la imagen
-      .input('idcreador', sql.Int, idcreador || 0)
-      .input('tiempoMins', sql.Float, 0)
-      .input('calorias', sql.Float, 0)
-      .input('carbohidratos', sql.Float, 0)
-      .input('proteina', sql.Float, 0)
-      .input('grasas', sql.Float, 0)
-      .input('precio', sql.Float, 0)
-      .input('fechaPublicacion', sql.Date, new Date())
+    .input('nombre', sql.NVarChar(50), nombre)
+    .input('descripcion', sql.NVarChar(100), descripcion || "")
+    .input('rating', sql.Float, 0)
+    .input('imagen', sql.NVarChar(300), imagen || "")  // Asegúrate de que el valor de imagen se inserta aquí
+    .input('idcreador', sql.Int, idcreador || 0)
+    .input('tiempoMins', sql.Float, 0)
+    .input('calorias', sql.Float, 0)
+    .input('carbohidratos', sql.Float, 0)
+    .input('proteina', sql.Float, 0)
+    .input('grasas', sql.Float, 0)
+    .input('precio', sql.Float, 0)
+    .input('fechaPublicacion', sql.Date, new Date())
+    .query(
+      `INSERT INTO Recetas 
+        (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carbohidratos, proteina, grasas, precio, fechaPublicacion) 
+       VALUES 
+        (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carbohidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
+       SELECT SCOPE_IDENTITY() AS id`
+    );
+
+  const recipeId = result.recordset[0].id;
+
+  let totalCalorias = 0;
+  let totalCarbohidratos = 0;
+  let totalProteinas = 0;
+  let totalGrasas = 0;
+
+  // Insertar ingredientes y calcular valores nutricionales
+  for (const ingrediente of ingredientes) {
+    const ingredientRequest = new sql.Request(transaction);
+
+    // Asegúrate de que 'cant' esté presente y tenga un valor correcto
+    if (!ingrediente.cantidad || ingrediente.cantidad <= 0) {
+      throw new Error('La cantidad de ingrediente es inválida o no está presente');
+    }
+
+    // Insertar el ingrediente en la receta
+    await ingredientRequest
+      .input('recetaId', sql.Int, recipeId)
+      .input('ingredienteId', sql.Int, ingrediente.id)
+      .input('cant', sql.Float, ingrediente.cantidad) // Asegura que 'cant' tiene un valor
       .query(
-        `INSERT INTO Recetas 
-          (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carbohidratos, proteina, grasas, precio, fechaPublicacion) 
+        `INSERT INTO IngredientePorReceta 
+          (idReceta, idIngrediente, cant) 
          VALUES 
-          (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carbohidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
-         SELECT SCOPE_IDENTITY() AS id`
+          (@recetaId, @ingredienteId, @cant)`
       );
 
-    const recipeId = result.recordset[0].id;
+    // Nueva instancia de sql.Request para la consulta nutricional
+    const nutritionRequest = new sql.Request(transaction);
 
-    // Insertar ingredientes, pasos y tags (similar a tu lógica actual)
-    for (const ingrediente of ingredientes) {
-      await request
-        .input('idreceta', sql.Int, recipeId)
-        .input('idingrediente', sql.Int, ingrediente.id)
-        .input('cantidad', sql.Float, ingrediente.cantidad)
-        .query(
-          `INSERT INTO IngredientePorReceta (idreceta, idingrediente, cant) 
-           VALUES (@idreceta, @idingrediente, @cantidad)`
-        );
-    }
+    // Obtener valores nutricionales del ingrediente
+    const nutricion = await nutritionRequest
+      .input('ingredienteId', sql.Int, ingrediente.id)
+      .query(
+        `SELECT calorias, carbohidratos, proteinas, grasas 
+         FROM Ingredientes 
+         WHERE id = @ingredienteId`
+      );
 
-    // Confirmar la transacción
-    await transaction.commit();
-    return { id: recipeId };
-  } catch (error) {
-    if (transaction) {
-      await transaction.rollback();
-    }
-    throw error;
-  } finally {
-    if (pool) {
-      pool.close();
+    if (nutricion.recordset.length > 0) {
+      const { calorias = 0, carbohidratos = 0, proteinas = 0, grasas = 0 } = nutricion.recordset[0];
+
+      // Dividimos los valores por 100 para obtener los valores por gramo, luego multiplicamos por la cantidad
+      totalCalorias += (calorias / 100) * ingrediente.cantidad;
+      totalCarbohidratos += (carbohidratos / 100) * ingrediente.cantidad;
+      totalProteinas += (proteinas / 100) * ingrediente.cantidad;
+      totalGrasas += (grasas / 100) * ingrediente.cantidad;
     }
   }
+
+  // Actualizar receta con los valores nutricionales calculados
+  const updateRequest = new sql.Request(transaction);
+  await updateRequest
+    .input('recetaId', sql.Int, recipeId)
+    .input('calorias', sql.Float, totalCalorias || 0) // Asegura que no sea NULL
+    .input('carbohidratos', sql.Float, totalCarbohidratos || 0) // Asegura que no sea NULL
+    .input('proteinas', sql.Float, totalProteinas || 0) // Asegura que no sea NULL
+    .input('grasas', sql.Float, totalGrasas || 0) // Asegura que no sea NULL
+    .query(
+      `UPDATE Recetas
+       SET calorias = @calorias,
+           carbohidratos = @carbohidratos,
+           proteina = @proteinas,
+           grasas = @grasas
+       WHERE id = @recetaId`
+    );
+
+  // Confirmar la transacción
+  await transaction.commit();
+
+  return { id: recipeId };
+} catch (error) {
+  console.error(`Error al crear receta: ${error.message}`);
+  if (transaction) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      console.error(`Error al hacer rollback de la transacción: ${rollbackError.message}`);
+    }
+  }
+  throw error;
+} finally {
+  if (pool) {
+    await pool.close();
+  }
 }
+}
+
+
 
 
   // In the service
 
-
-// In the repository
 async rateReceta({ rating, recetaId, userId }) {
   let pool;
  

@@ -8,6 +8,7 @@ import Tags from './src/controllers/tags-controller.js';
 import authRoutes from './src/routes/authRoutes.js';
 import userRoutes from './src/routes/user-routes.js';
 import ingredientesRoutes from './src/controllers/ingredientes-controller.js';
+import Eventos from './src/controllers/evento-controller.js'
 
 // Obtener __dirname en módulos ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/ingredientes', ingredientesRoutes); 
 app.use('/api/tags', Tags);
+app.use('/api/eventos', Eventos);
+
 
 app.listen(port, () => {
   console.log(`Servidor escuchando en el puerto ${port}`);

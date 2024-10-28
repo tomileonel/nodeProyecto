@@ -141,8 +141,10 @@ router.get('/ingredientes', async (req, res) => {
 router.post('/create', upload.single('imagen'), async (req, res) => {
   const { nombre, descripcion, ingredientes, pasos, tags, idcreador } = req.body;
 
-  // Verifica si la imagen ha sido subida
-  const imagen = req.file ? req.file.filename : null;
+  // Verifica si la imagen ha sido subida y construye la ruta de la imagen
+  const imagen = req.file ? `/img/${req.file.filename}` : null;  // Ruta de la imagen
+
+  console.log('Ruta de la imagen subida:', imagen);  // Depurar si la ruta de la imagen se genera correctamente
 
   // Verifica si el idcreador está presente
   if (!idcreador) {
@@ -157,8 +159,9 @@ router.post('/create', upload.single('imagen'), async (req, res) => {
       pasos: JSON.parse(pasos),
       tags: JSON.parse(tags),
       idcreador,
-      imagen
+      imagen  // Pasamos la ruta de la imagen al servicio
     });
+
     res.status(201).json(result.recipe);
   } catch (error) {
     console.error('Error al crear receta:', error);

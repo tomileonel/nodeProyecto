@@ -19,8 +19,12 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Servir las imágenes desde la carpeta 'img'
+// Sirve las imágenes subidas desde la carpeta 'uploads'
 app.use('/img', express.static(path.join(__dirname, 'img')));
+
+
+// Servir las imágenes desde la carpeta 'img'
+
 
 // Rutas de la aplicación
 app.use('/api/recetas', Recetas);

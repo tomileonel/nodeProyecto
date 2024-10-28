@@ -121,12 +121,9 @@ export default class RecetasService {
   
   async rateRecipe(rating, recetaId, userId) {
     try {
-      if (rating < 1 || rating > 5) {
-        throw new Error('Rating must be between 1 and 5');
-      }
-      
+      console.log("bolas nro°",userId)
       const result = await this.recetasRepository.rateReceta({ rating, recetaId, userId });
-      const updateRecetasRating = await this.recetasRepository.rateReceta({rating,recetaId})
+      
       return { recipe: result, status: 200 };
       
     } catch (error) {
@@ -180,7 +177,8 @@ export default class RecetasService {
   
   async postCommentary(rid,uid,msg,date){
     try {
-      const result = await this.recetasRepository.postComment(rid,uid,msg,date);
+      const rating = await this.recetasRepository.ratingInCommentary(uid)
+      const result = await this.recetasRepository.postComment(rid,uid,msg,date,rating);
       return { result: result, status: 200 };  
     } catch (error) {
       console.error(`Error getting comments ${error}`);

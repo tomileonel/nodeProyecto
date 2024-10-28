@@ -280,7 +280,7 @@ export default class RecetasRepository {
           SELECT r.*, U.imagen as imagenUsuario, U.nombreusuario
           FROM recetas r
           JOIN Usuarios U ON U.id = r.idcreador
-          WHERE r.rating > 4
+          WHERE r.rating >= 4
           ORDER BY r.fechaPublicacion DESC
           OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
         `;
@@ -293,7 +293,7 @@ export default class RecetasRepository {
           JOIN TagRecetas TR ON TR.idReceta = r.id
           JOIN Usuarios U ON U.id = r.idcreador
           WHERE TR.idTag IN (${tagPlaceholders})
-            AND r.rating > 4
+            AND r.rating >= 4
             AND r.id IN (
               SELECT TR2.idReceta
               FROM TagRecetas TR2
@@ -632,7 +632,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
 // In the repository
 async rateReceta({ rating, recetaId, userId }) {
   let pool;
- 
+  console.log(userId)
   try {
     pool = await getConnection();
     console.log(recetaId)
@@ -709,17 +709,19 @@ async updateRatingReceta(recetaId){
 }
 async getReviews(rid) {
   let pool;
+  
   try {
     pool = await getConnection();
     const result = await pool.request()
     .input('recipeId', sql.Int, rid)  
     .query(`
-    SELECT rev.comentario, rev.fecha, rev.id, u.nombreusuario, u.imagen, rec.id,
+    SELECT rev.comentario, rev.fecha, rev.rating rev.id, u.nombreusuario, u.imagen, rec.id,
     (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
     (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
   FROM Reviews rev
   JOIN Usuarios u ON u.id = rev.idUsuario
   JOIN Recetas rec ON rec.id = rev.idReceta
+  
   WHERE rec.id = @recipeId
   ORDER BY rev.fecha DESC;
   
@@ -731,7 +733,7 @@ async getReviews(rid) {
     }
   }
 }
-async postComment(rid,uid,msg,date){
+async postComment(rid,uid,msg,date,rating){
   let pool;
   try {
     pool = await getConnection();
@@ -739,11 +741,31 @@ async postComment(rid,uid,msg,date){
     .input('recipeId', sql.Int, rid)
     .input('userId', sql.Int, uid)
     .input('comment', sql.NVarChar(500), msg)
-    .input('fecha', sql.DateTime, date)  
+    .input('fecha', sql.DateTime, date)
+    .input('rating', sql.Int, rating)  
     .query(`
       INSERT INTO Reviews (comentario,fecha,idUsuario,idReceta) VALUES (@comment, @fecha, @userId,@recipeId)
     `);
     return result;
+  } finally {
+    if (pool) {
+      await pool.close();
+    }
+  }
+}
+async ratingInCommentary(uid){
+  let pool;
+  try {
+    pool = await getConnection();
+    const result = await pool.request()
+    .input('userId', sql.Int, uid)  
+    .query(`SELECT rating FROM Rating WHERE idUsuario = @userId
+    `);
+    if(result != null){
+      return result.recordset
+    }else {
+      return 0
+    }
   } finally {
     if (pool) {
       await pool.close();

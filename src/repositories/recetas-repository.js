@@ -605,6 +605,25 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
   let totalProteinas = 0;
   let totalGrasas = 0;
 
+// Dentro del bucle de pasos en createRecipe
+for (const paso of pasos) {
+  const stepRequest = new sql.Request(transaction);
+  await stepRequest
+    .input('recetaId', sql.Int, recipeId)
+    .input('nro', sql.Int, paso.numero)
+    .input('titulo', sql.NVarChar(100), paso.titulo)
+    .input('descripcion', sql.NVarChar(300), paso.descripcion)
+    .input('duracionMin', sql.Int, paso.duracionMin)  // Nuevo campo para la duración en minutos
+    .query(`
+      INSERT INTO PasosReceta 
+      (idReceta, nro, titulo, descripcion, duracionMin) 
+      VALUES 
+      (@recetaId, @nro, @titulo, @descripcion, @duracionMin)
+    `);
+}
+
+
+
   // Insertar ingredientes y calcular valores nutricionales
   for (const ingrediente of ingredientes) {
     const ingredientRequest = new sql.Request(transaction);

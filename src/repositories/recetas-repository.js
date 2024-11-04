@@ -3,51 +3,58 @@ import getConnection from '../configs/db-config.js';
 
 export default class RecetasRepository {
 
-   async getRecipesByTag(userTags) {
+  async getRecipesByTag(userTags) {
     let pool;
     try {
       pool = await getConnection();
-
-      if (userTags.length === 0) {
-        const result = await pool.request().query(`
-          SELECT DISTINCT r.*
-          FROM recetas r
-        `);
-        return result.recordset;
-      }
-
-      const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
-
-      const query = `
-        SELECT r.*
-        FROM recetas r
-        JOIN TagRecetas TR ON TR.idReceta = r.id
-        WHERE TR.idTag IN (${tagPlaceholders})
-        AND r.id IN (
-          SELECT TR2.idReceta
-          FROM TagRecetas TR2
-          WHERE TR2.idTag IN (${tagPlaceholders})
-          GROUP BY TR2.idReceta
-          HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
-        )
-        GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
-                 r.carbohidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
-      `;
-
+  
       const request = pool.request();
-      userTags.forEach((tag, index) => {      
-        request.input(`tag${index}`, sql.Int, tag);
-      });
-      request.input('totalTags', sql.Int, userTags.length);
-
+      let query;
+  
+      if (userTags.length === 0) {
+        // Cuando no se especifican tags, hacemos un SELECT * para obtener todas las recetas
+        query = `
+          SELECT *
+          FROM Recetas
+        `;
+      } else {
+        // Cuando hay tags, se filtra la consulta para devolver solo las recetas con los tags especificados
+        const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+  
+        query = `
+          SELECT r.*
+          FROM Recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag IN (${tagPlaceholders})
+          AND r.id IN (
+            SELECT TR2.idReceta
+            FROM TagRecetas TR2
+            WHERE TR2.idTag IN (${tagPlaceholders})
+            GROUP BY TR2.idReceta
+            HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+          )
+          GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
+                   r.carbohidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
+        `;
+  
+        // Añadir los tags como parámetros de la consulta
+        userTags.forEach((tag, index) => {      
+          request.input(`tag${index}`, sql.Int, tag);
+        });
+        request.input('totalTags', sql.Int, userTags.length);
+      }
+  
+      // Ejecutar la consulta y devolver los resultados
       const result = await request.query(query);
       return result.recordset;
+  
     } finally {
       if (pool) {
         await pool.close();
       }
     }
   }
+  
   async getFilteredRecipesByPrice({ search, tiempoMax, caloriasMax, ingredientes, tags, precioMin, precioMax }) {
     let query = `
     SELECT DISTINCT r.*
@@ -606,7 +613,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
         .input('nro', sql.Int, paso.numero)
         .input('titulo', sql.NVarChar(100), paso.titulo)
         .input('descripcion', sql.NVarChar(300), paso.descripcion)
-        .input('duracionMin', sql.Int, paso.duracionMin)
+        .input('duracionMin', sql.Float, paso.duracionMin || 0) // Valor predeterminado para duracionMin
         .query(`
           INSERT INTO PasosReceta 
           (idReceta, nro, titulo, descripcion, duracionMin) 
@@ -674,11 +681,12 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     for (const tag of tags) {
       const tagRequest = new sql.Request(transaction);
       await tagRequest
+      
         .input('idTag', sql.Int, tag.id)
-        .input('idUsuario', sql.Int, idcreador)
+        .input('idReceta', sql.Int, recipeId)
         .query(
-          `INSERT INTO TagUsuario (idTag, idUsuario)
-           VALUES (@idTag, @idUsuario)`
+          `INSERT INTO TagRecetas (idTag, idReceta)
+           VALUES (@idTag, @idReceta)`
         );
     }
 

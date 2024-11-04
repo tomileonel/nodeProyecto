@@ -251,7 +251,7 @@ router.get('/getReviews/:recipeId', async (req,res) => {
 })
 router.post('/postComment/:recipeId/:userId', async (req,res) => {
   const {recipeId,userId} = req.params;
-  const {msg,date} = req.body   ;
+  const {msg,date} = req.body;
   try {
     const result = await recetasService.postCommentary(recipeId,userId,msg,date)
     res.status(result.status).json(result.result)

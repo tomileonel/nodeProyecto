@@ -177,8 +177,9 @@ export default class RecetasService {
   
   async postCommentary(rid,uid,msg,date){
     try {
-      const rating = await this.recetasRepository.ratingInCommentary(uid)
-      const result = await this.recetasRepository.postComment(rid,uid,msg,date,rating);
+      const rating = await this.recetasRepository.ratingInCommentary(uid);
+      const rate = rating[0].rating;
+      const result = await this.recetasRepository.postComment(rid,uid,msg,date,rate);
       return { result: result, status: 200 };  
     } catch (error) {
       console.error(`Error getting comments ${error}`);

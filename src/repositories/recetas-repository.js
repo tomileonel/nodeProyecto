@@ -785,22 +785,19 @@ async updateRatingReceta(recetaId){
 }
 async getReviews(rid) {
   let pool;
-  
   try {
     pool = await getConnection();
     const result = await pool.request()
     .input('recipeId', sql.Int, rid)  
     .query(`
-    SELECT rev.comentario, rev.fecha, rev.rating rev.id, u.nombreusuario, u.imagen, rec.id,
-    (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
-    (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
-  FROM Reviews rev
-  JOIN Usuarios u ON u.id = rev.idUsuario
-  JOIN Recetas rec ON rec.id = rev.idReceta
-  
-  WHERE rec.id = @recipeId
-  ORDER BY rev.fecha DESC;
-  
+      SELECT rev.comentario, rev.fecha, rev.rating, rev.id, u.nombreusuario, u.imagen, rec.id,
+      (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
+      (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
+      FROM Reviews rev
+      JOIN Usuarios u ON u.id = rev.idUsuario
+      JOIN Recetas rec ON rec.id = rev.idReceta
+      WHERE rec.id = @recipeId
+      ORDER BY rev.fecha DESC;
     `);
     return result;
   } finally {
@@ -820,7 +817,7 @@ async postComment(rid,uid,msg,date,rating){
     .input('fecha', sql.DateTime, date)
     .input('rating', sql.Int, rating)  
     .query(`
-      INSERT INTO Reviews (comentario,fecha,idUsuario,idReceta) VALUES (@comment, @fecha, @userId,@recipeId)
+      INSERT INTO Reviews (comentario,fecha,rating,idUsuario,idReceta ) VALUES (@comment, @fecha,@rating, @userId,@recipeId)
     `);
     return result;
   } finally {
@@ -835,7 +832,7 @@ async ratingInCommentary(uid){
     pool = await getConnection();
     const result = await pool.request()
     .input('userId', sql.Int, uid)  
-    .query(`SELECT rating FROM Rating WHERE idUsuario = @userId
+    .query(`SELECT * FROM Rating WHERE idUsuario = @userId
     `);
     if(result != null){
       return result.recordset

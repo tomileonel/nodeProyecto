@@ -34,12 +34,13 @@ export const register = async (req, res) => {
 };
 
 export const editProfile = async (req, res) => {
+  console.log("llegaste")
   const img = req.file ? `/img/${req.file.filename}` : null;  // Ruta de la imagen
 
-  const { id,username, name, lastName, phone, email, password, description } = req.body;
+  const { id,username, name, lastName, phone, email, password, description,tags} = req.body;
 
 
-  const [response, statusCode] = await authService.editProfile(id,username, name, lastName, phone, email, password, description,img);
+  const [response, statusCode] = await authService.editProfile(id,username, name, lastName, phone, email, password, description,img,tags);
   res.status(statusCode).json(response);
 };
 

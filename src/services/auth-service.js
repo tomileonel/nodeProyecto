@@ -38,15 +38,19 @@ export default class AuthService {
         return [{ message: 'El correo electrónico ya está registrado' }, 400];
       }
 
+
       var existingUser = await this.authRepository.getUserByPhone(phone);
       if (existingUser) {
         return [{ message: 'El telefono ya está registrado' }, 400];
       }
 
+
       var existingUser = await this.authRepository.getUserByUsername(username);
       if (existingUser) {
         return [{ message: 'El nombre de usario ya está registrado' }, 400];
       }
+
+
       // Hashear la contraseña antes de guardarla
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -55,6 +59,8 @@ export default class AuthService {
       if (!isRegisteredSuccessfully) {
         return [{ message: 'Error al registrar el usuario' }, 500];
       }
+      console.log("4")
+
 
       // Obtener el usuario registrado para generar el token
       const newUser = await this.authRepository.getUserByEmail(email);

@@ -8,6 +8,7 @@ const carritoService = new CarritoService();
 router.get('/getInfoCarrito/:userId', async (req,res) =>{
     const userId = req.params;
     try {
+        
         const [data,status] = await carritoService.getCarritoFromUser(userId);
         res.status(status).json(data)
     } catch (error) {
@@ -23,5 +24,15 @@ router.post('/insertCarrito/:userId/:recipeId', async (req,res) => {
         res.status(409).json({error:error.message})
     }
 })
+router.delete('/DeleteCarrito/:id', async (req,res) => {
+    const {id} = req.params
+    try {
+        const [data,status] = await carritoService.deleteFromCarrito(id)
+        res.status(status).json(data)
+    } catch (error) {
+        res.status(400).json({error:error.message})
+    }
+})
+router.delete('/deleteCarrito/:carritoId')
 
 export default router;

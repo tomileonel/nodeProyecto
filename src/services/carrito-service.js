@@ -23,6 +23,15 @@ async InsertIntoCarrito(recetaId,userId){
         return ["No se pudo insertar en el carrito", 409]
     }
 }
+async deleteFromCarrito(id){
+    try {
+        const result = await this.carritoRepository.deleteRecetaCarrito(id)
+        return[`borrado efectivamente, ${result}`, 200]
+    } catch (error) {
+        console.error(`No se pudo borrar la receta del carrito, error: ${error}`)
+        return ["No se pudo borrar la receta", 400]
+    }
+}
   
 }
   

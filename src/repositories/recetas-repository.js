@@ -54,7 +54,7 @@ export default class RecetasRepository {
       }
     }
   }
-  
+
   async getFilteredRecipesByPrice({ search, tiempoMax, caloriasMax, ingredientes, tags, precioMin, precioMax }) {
     let query = `
     SELECT DISTINCT r.*
@@ -570,7 +570,7 @@ export default class RecetasRepository {
         throw error;
     }
 }
-async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
+async  createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
   let pool;
   try {
     pool = await getConnection();
@@ -605,15 +605,17 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     let totalProteinas = 0;
     let totalGrasas = 0;
     let totalPrecio = 0;
+    let totalTime = 0;
 
     for (const paso of pasos) {
+      totalTime += paso.duracionMin || 0; 
       const stepRequest = new sql.Request(transaction);
       await stepRequest
         .input('recetaId', sql.Int, recipeId)
         .input('nro', sql.Int, paso.numero)
         .input('titulo', sql.NVarChar(100), paso.titulo)
         .input('descripcion', sql.NVarChar(300), paso.descripcion)
-        .input('duracionMin', sql.Float, paso.duracionMin || 0) // Valor predeterminado para duracionMin
+        .input('duracionMin', sql.Float, paso.duracionMin || 0)
         .query(`
           INSERT INTO PasosReceta 
           (idReceta, nro, titulo, descripcion, duracionMin) 
@@ -668,20 +670,21 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
       .input('proteinas', sql.Float, totalProteinas || 0)
       .input('grasas', sql.Float, totalGrasas || 0)
       .input('precio', sql.Float, totalPrecio || 0)
+      .input('tiempoMins', sql.Float, totalTime || 0) // Añadimos el tiempo total de los pasos
       .query(
         `UPDATE Recetas
          SET calorias = @calorias,
              carbohidratos = @carbohidratos,
              proteina = @proteinas,
              grasas = @grasas,
-             precio = @precio
+             precio = @precio,
+             tiempoMins = @tiempoMins
          WHERE id = @recetaId`
       );
 
     for (const tag of tags) {
       const tagRequest = new sql.Request(transaction);
       await tagRequest
-      
         .input('idTag', sql.Int, tag.id)
         .input('idReceta', sql.Int, recipeId)
         .query(
@@ -708,7 +711,6 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     }
   }
 }
-
 
 
 

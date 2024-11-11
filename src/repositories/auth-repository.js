@@ -63,44 +63,69 @@ export default class AuthRepository {
   async editProfile(id, username, name, lastName, phone, email, password, description, img) {
     try {
       const pool = await getConnection();
-      const request = pool.request()
-        .input('id', sql.Int, id)
-        .input('username', sql.VarChar, username)
-        .input('name', sql.NVarChar, name)
-        .input('lastName', sql.NVarChar, lastName)
-        .input('phone', sql.BigInt, phone)
-        .input('email', sql.VarChar, email)
-        .input('description', sql.NVarChar, description)
-        .input('img', sql.VarChar, img);
-
-      // Solo incluir la contraseña si fue proporcionada
+      const request = pool.request().input('id', sql.Int, id);
+  
+      // Construir dinámicamente la consulta SQL y añadir los parámetros solo si están definidos
+      const setClauses = [];
+  
+      if (username) {
+        setClauses.push('nombreusuario = @username');
+        request.input('username', sql.VarChar, username);
+      }
+      if (name) {
+        setClauses.push('nombre = @name');
+        request.input('name', sql.NVarChar, name);
+      }
+      if (lastName) {
+        setClauses.push('apellido = @lastName');
+        request.input('lastName', sql.NVarChar, lastName);
+      }
+      if (phone) {
+        setClauses.push('telefono = @phone');
+        request.input('phone', sql.BigInt, phone);
+      }
+      if (email) {
+        setClauses.push('mail = @email');
+        request.input('email', sql.VarChar, email);
+      }
       if (password) {
+        setClauses.push('contrasena = @password');
         request.input('password', sql.VarChar, password);
       }
-
+      if (description) {
+        setClauses.push('descripcion = @description');
+        request.input('description', sql.NVarChar, description);
+      }
+      if (img) {
+        setClauses.push('imagen = @img');
+        request.input('img', sql.VarChar, img);
+      }
+  
+      // Si no hay campos para actualizar, devolver false
+      if (setClauses.length === 0) {
+        console.warn('No hay campos para actualizar');
+        return false;
+      }
+  
+      // Construir la consulta completa de actualización
       const updateQuery = `
         UPDATE Usuarios
-        SET 
-          nombreusuario = @username,
-          nombre = @name,
-          apellido = @lastName,
-          telefono = @phone,
-          mail = @email,
-          ${password ? 'contrasena = @password,' : ''}
-          descripcion = @description,
-          imagen = @img
+        SET ${setClauses.join(', ')}
         WHERE id = @id
       `;
-
+  
+      // Ejecutar la consulta
       const result = await request.query(updateQuery);
-
+  
       // Verificar si se afectó alguna fila (es decir, si el usuario fue actualizado)
-      return result.rowsAffected[0] > 0;
+      return result.rowsAffected > 0;
     } catch (error) {
       console.error('Error al actualizar perfil:', error);
+      console.log(error)
       throw error;
     }
   }
+  
 
 
 async getUserById(userId)  {

@@ -1,7 +1,19 @@
 import AuthService from '../services/auth-service.js';
 import { authenticateToken } from '../utils/auth-middleware.js';
-
+import multer from 'multer';
+import path from 'path';
 const authService = new AuthService();
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'img/'); // Cambiamos la carpeta de destino a 'img/'
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname)); // Nombre único basado en la fecha
+  }
+});
+
+const upload = multer({ storage: storage });
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -21,6 +33,17 @@ export const register = async (req, res) => {
   res.status(statusCode).json(response);
 };
 
+export const editProfile = async (req, res) => {
+  const img = req.file ? `/img/${req.file.filename}` : null;  // Ruta de la imagen
+
+  const { id,username, name, lastName, phone, email, password, description } = req.body;
+
+
+  const [response, statusCode] = await authService.editProfile(id,username, name, lastName, phone, email, password, description,img);
+  res.status(statusCode).json(response);
+};
+
+
 export const getUserProfile = async (req, res) => {
   const token = req.headers['authorization']?.split(' ')[1]; // Obtiene el token del encabezado Authorization
 
@@ -38,18 +61,4 @@ export const getUserProfile = async (req, res) => {
     res.status(401).json({ message: error.message });
   }
 };
-
-// export const getUserByToken = async (token) => {
-//   try {
-//     const verified = jwt.verify(token, 'budin'); // Decodifica el token usando la clave secreta
-//     const userId = verified.id;  // Obtiene el ID del usuario del payload del token
-
-//     const user = await authService.getUserByToken(userId);  // Obtiene el perfil del usuario usando el ID
-//     return user;
-//   } catch (error) {
-//     console.error(`Error al obtener el usuario por token: ${error.message}`);
-//     throw new Error('Token inválido o usuario no encontrado');
-//   }
-// }
-
 

@@ -15,6 +15,32 @@ export default class AuthRepository {
     }
   }
 
+  async getUserByPhone(phone) {
+    try {
+      const pool = await getConnection();
+      const result = await pool.request()
+        .input('phone', sql.BigInt, phone)
+        .query('SELECT * FROM Usuarios WHERE telefono = @phone');
+      return result.recordset[0];
+    } catch (error) {
+      console.error(`Error en la consulta de usuario por telefono: ${error}`);
+      throw error;
+    }
+  }
+
+  async getUserByUsername(username) {
+    try {
+      const pool = await getConnection();
+      const result = await pool.request()
+        .input('username', sql.BigInt, username)
+        .query('SELECT * FROM Usuarios WHERE nombreusuario = @username');
+      return result.recordset[0];
+    } catch (error) {
+      console.error(`Error en la consulta de usuario por nombre de usuario: ${error}`);
+      throw error;
+    }
+  }
+
   async registerUser(username, name, lastName, phone, email, hashedPassword) {
     try {
       const pool = await getConnection();
@@ -22,13 +48,55 @@ export default class AuthRepository {
         .input('username', sql.VarChar, username)
         .input('name', sql.NVarChar, name)
         .input('lastName', sql.NVarChar, lastName)
-        .input('phone', sql.Int, phone)
+        .input('phone', sql.BigInt, phone)
         .input('email', sql.VarChar, email)
         .input('password', sql.VarChar, hashedPassword)
         .query('INSERT INTO Usuarios (nombreusuario, nombre, apellido, telefono, mail, contrasena) VALUES (@username, @name, @lastName, @phone, @email, @password)');
       return result.rowsAffected[0] > 0;
     } catch (error) {
       console.error(`Error al registrar el usuario: ${error}`);
+      throw error;
+    }
+  }
+
+  async editProfile(id, username, name, lastName, phone, email, password, description, img) {
+    try {
+      const pool = await getConnection();
+      const request = pool.request()
+        .input('id', sql.Int, id)
+        .input('username', sql.VarChar, username)
+        .input('name', sql.NVarChar, name)
+        .input('lastName', sql.NVarChar, lastName)
+        .input('phone', sql.BigInt, phone)
+        .input('email', sql.VarChar, email)
+        .input('description', sql.NVarChar, description)
+        .input('img', sql.VarChar, img);
+
+      // Solo incluir la contraseña si fue proporcionada
+      if (password) {
+        request.input('password', sql.VarChar, password);
+      }
+
+      const updateQuery = `
+        UPDATE Usuarios
+        SET 
+          nombreusuario = @username,
+          nombre = @name,
+          apellido = @lastName,
+          telefono = @phone,
+          mail = @email,
+          ${password ? 'contrasena = @password,' : ''}
+          descripcion = @description,
+          imagen = @img
+        WHERE id = @id
+      `;
+
+      const result = await request.query(updateQuery);
+
+      // Verificar si se afectó alguna fila (es decir, si el usuario fue actualizado)
+      return result.rowsAffected[0] > 0;
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
       throw error;
     }
   }

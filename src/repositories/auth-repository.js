@@ -16,6 +16,7 @@ export default class AuthRepository {
   }
 
   async getUserByPhone(phone) {
+    phone = parseInt(phone)
     try {
       const pool = await getConnection();
       const result = await pool.request()
@@ -32,7 +33,7 @@ export default class AuthRepository {
     try {
       const pool = await getConnection();
       const result = await pool.request()
-        .input('username', sql.BigInt, username)
+        .input('username', sql.VarChar, username)
         .query('SELECT * FROM Usuarios WHERE nombreusuario = @username');
       return result.recordset[0];
     } catch (error) {

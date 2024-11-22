@@ -8,7 +8,7 @@ export default class CarritoRepository {
             pool = await getConnection();
             const result = await pool.request()
             .input('uid', sql.Int, userId.userId )
-            .query(`SELECT r.nombre, r.rating, r.imagen, r.tiempoMins, r.calorias, r.precio, c.idUsuario, c.id FROM Carrito c
+            .query(`SELECT r.nombre, r.rating, r.imagen, r.tiempoMins, r.calorias, r.precio, c.idUsuario, c.id, r.id AS idReceta FROM Carrito c
             JOIN Recetas r on r.id = c.idReceta WHERE c.idUsuario = @uid`)
             return result.recordset
         }finally{

@@ -567,143 +567,138 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
   let pool;
   try {
     pool = await getConnection();
-
-    // Iniciar una transacción
     const transaction = new sql.Transaction(pool);
     await transaction.begin();
 
     let request = new sql.Request(transaction);
-
-    console.log('Ruta de imagen recibida en el repositorio:', imagen);  // Verificar que el valor de imagen se recibe correctamente
-
-    // Insertar la receta en la base de datos, incluyendo la ruta de la imagen
     const result = await request
-    .input('nombre', sql.NVarChar(50), nombre)
-    .input('descripcion', sql.NVarChar(100), descripcion || "")
-    .input('rating', sql.Float, 0)
-    .input('imagen', sql.NVarChar(300), imagen || "")  // Asegúrate de que el valor de imagen se inserta aquí
-    .input('idcreador', sql.Int, idcreador || 0)
-    .input('tiempoMins', sql.Float, 0)
-    .input('calorias', sql.Float, 0)
-    .input('carbohidratos', sql.Float, 0)
-    .input('proteina', sql.Float, 0)
-    .input('grasas', sql.Float, 0)
-    .input('precio', sql.Float, 0)
-    .input('fechaPublicacion', sql.Date, new Date())
-    .query(
-      `INSERT INTO Recetas 
-        (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carbohidratos, proteina, grasas, precio, fechaPublicacion) 
-       VALUES 
-        (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carbohidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
-       SELECT SCOPE_IDENTITY() AS id`
-    );
-
-  const recipeId = result.recordset[0].id;
-
-  let totalCalorias = 0;
-  let totalCarbohidratos = 0;
-  let totalProteinas = 0;
-  let totalGrasas = 0;
-
-// Dentro del bucle de pasos en createRecipe
-for (const paso of pasos) {
-  const stepRequest = new sql.Request(transaction);
-  await stepRequest
-    .input('recetaId', sql.Int, recipeId)
-    .input('nro', sql.Int, paso.numero)
-    .input('titulo', sql.NVarChar(100), paso.titulo)
-    .input('descripcion', sql.NVarChar(300), paso.descripcion)
-    .input('duracionMin', sql.Int, paso.duracionMin)  // Nuevo campo para la duración en minutos
-    .query(`
-      INSERT INTO PasosReceta 
-      (idReceta, nro, titulo, descripcion, duracionMin) 
-      VALUES 
-      (@recetaId, @nro, @titulo, @descripcion, @duracionMin)
-    `);
-}
-
-
-
-  // Insertar ingredientes y calcular valores nutricionales
-  for (const ingrediente of ingredientes) {
-    const ingredientRequest = new sql.Request(transaction);
-
-    // Asegúrate de que 'cant' esté presente y tenga un valor correcto
-    if (!ingrediente.cantidad || ingrediente.cantidad <= 0) {
-      throw new Error('La cantidad de ingrediente es inválida o no está presente');
-    }
-
-    // Insertar el ingrediente en la receta
-    await ingredientRequest
-      .input('recetaId', sql.Int, recipeId)
-      .input('ingredienteId', sql.Int, ingrediente.id)
-      .input('cant', sql.Float, ingrediente.cantidad) // Asegura que 'cant' tiene un valor
+      .input('nombre', sql.NVarChar(50), nombre)
+      .input('descripcion', sql.NVarChar(100), descripcion || "")
+      .input('rating', sql.Float, 0)
+      .input('imagen', sql.NVarChar(300), imagen || "")
+      .input('idcreador', sql.Int, idcreador || 0)
+      .input('tiempoMins', sql.Float, 0)
+      .input('calorias', sql.Float, 0)
+      .input('carbohidratos', sql.Float, 0)
+      .input('proteina', sql.Float, 0)
+      .input('grasas', sql.Float, 0)
+      .input('precio', sql.Float, 0)
+      .input('fechaPublicacion', sql.Date, new Date())
       .query(
-        `INSERT INTO IngredientePorReceta 
-          (idReceta, idIngrediente, cant) 
+        `INSERT INTO Recetas 
+          (nombre, descripcion, rating, imagen, idcreador, tiempoMins, calorias, carbohidratos, proteina, grasas, precio, fechaPublicacion) 
          VALUES 
-          (@recetaId, @ingredienteId, @cant)`
+          (@nombre, @descripcion, @rating, @imagen, @idcreador, @tiempoMins, @calorias, @carbohidratos, @proteina, @grasas, @precio, @fechaPublicacion); 
+         SELECT SCOPE_IDENTITY() AS id`
       );
 
-    // Nueva instancia de sql.Request para la consulta nutricional
-    const nutritionRequest = new sql.Request(transaction);
+    const recipeId = result.recordset[0].id;
+    let totalCalorias = 0;
+    let totalCarbohidratos = 0;
+    let totalProteinas = 0;
+    let totalGrasas = 0;
+    let totalPrecio = 0;
 
-    // Obtener valores nutricionales del ingrediente
-    const nutricion = await nutritionRequest
-      .input('ingredienteId', sql.Int, ingrediente.id)
+    for (const paso of pasos) {
+      const stepRequest = new sql.Request(transaction);
+      await stepRequest
+        .input('recetaId', sql.Int, recipeId)
+        .input('nro', sql.Int, paso.numero)
+        .input('titulo', sql.NVarChar(100), paso.titulo)
+        .input('descripcion', sql.NVarChar(300), paso.descripcion)
+        .input('duracionMin', sql.Int, paso.duracionMin)
+        .query(`
+          INSERT INTO PasosReceta 
+          (idReceta, nro, titulo, descripcion, duracionMin) 
+          VALUES 
+          (@recetaId, @nro, @titulo, @descripcion, @duracionMin)
+        `);
+    }
+
+    for (const ingrediente of ingredientes) {
+      const ingredientRequest = new sql.Request(transaction);
+
+      if (!ingrediente.cantidad || ingrediente.cantidad <= 0) {
+        throw new Error('La cantidad de ingrediente es inválida o no está presente');
+      }
+
+      await ingredientRequest
+        .input('recetaId', sql.Int, recipeId)
+        .input('ingredienteId', sql.Int, ingrediente.id)
+        .input('cant', sql.Float, ingrediente.cantidad)
+        .query(
+          `INSERT INTO IngredientePorReceta 
+            (idReceta, idIngrediente, cant) 
+           VALUES 
+            (@recetaId, @ingredienteId, @cant)`
+        );
+
+      const nutritionRequest = new sql.Request(transaction);
+      const nutricion = await nutritionRequest
+        .input('ingredienteId', sql.Int, ingrediente.id)
+        .query(
+          `SELECT calorias, carbohidratos, proteinas, grasas, precio 
+           FROM Ingredientes 
+           WHERE id = @ingredienteId`
+        );
+
+      if (nutricion.recordset.length > 0) {
+        const { calorias = 0, carbohidratos = 0, proteinas = 0, grasas = 0, precio = 0 } = nutricion.recordset[0];
+
+        totalCalorias += (calorias / 100) * ingrediente.cantidad;
+        totalCarbohidratos += (carbohidratos / 100) * ingrediente.cantidad;
+        totalProteinas += (proteinas / 100) * ingrediente.cantidad;
+        totalGrasas += (grasas / 100) * ingrediente.cantidad;
+        totalPrecio += (precio / 100) * ingrediente.cantidad;
+      }
+    }
+
+    const updateRequest = new sql.Request(transaction);
+    await updateRequest
+      .input('recetaId', sql.Int, recipeId)
+      .input('calorias', sql.Float, totalCalorias || 0)
+      .input('carbohidratos', sql.Float, totalCarbohidratos || 0)
+      .input('proteinas', sql.Float, totalProteinas || 0)
+      .input('grasas', sql.Float, totalGrasas || 0)
+      .input('precio', sql.Float, totalPrecio || 0)
       .query(
-        `SELECT calorias, carbohidratos, proteinas, grasas 
-         FROM Ingredientes 
-         WHERE id = @ingredienteId`
+        `UPDATE Recetas
+         SET calorias = @calorias,
+             carbohidratos = @carbohidratos,
+             proteina = @proteinas,
+             grasas = @grasas,
+             precio = @precio
+         WHERE id = @recetaId`
       );
 
-    if (nutricion.recordset.length > 0) {
-      const { calorias = 0, carbohidratos = 0, proteinas = 0, grasas = 0 } = nutricion.recordset[0];
+    for (const tag of tags) {
+      const tagRequest = new sql.Request(transaction);
+      await tagRequest
+        .input('idTag', sql.Int, tag.id)
+        .input('idUsuario', sql.Int, idcreador)
+        .query(
+          `INSERT INTO TagUsuario (idTag, idUsuario)
+           VALUES (@idTag, @idUsuario)`
+        );
+    }
 
-      // Dividimos los valores por 100 para obtener los valores por gramo, luego multiplicamos por la cantidad
-      totalCalorias += (calorias / 100) * ingrediente.cantidad;
-      totalCarbohidratos += (carbohidratos / 100) * ingrediente.cantidad;
-      totalProteinas += (proteinas / 100) * ingrediente.cantidad;
-      totalGrasas += (grasas / 100) * ingrediente.cantidad;
+    await transaction.commit();
+    return { id: recipeId };
+  } catch (error) {
+    console.error(`Error al crear receta: ${error.message}`);
+    if (transaction) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error(`Error al hacer rollback de la transacción: ${rollbackError.message}`);
+      }
+    }
+    throw error;
+  } finally {
+    if (pool) {
+      await pool.close();
     }
   }
-
-  // Actualizar receta con los valores nutricionales calculados
-  const updateRequest = new sql.Request(transaction);
-  await updateRequest
-    .input('recetaId', sql.Int, recipeId)
-    .input('calorias', sql.Float, totalCalorias || 0) // Asegura que no sea NULL
-    .input('carbohidratos', sql.Float, totalCarbohidratos || 0) // Asegura que no sea NULL
-    .input('proteinas', sql.Float, totalProteinas || 0) // Asegura que no sea NULL
-    .input('grasas', sql.Float, totalGrasas || 0) // Asegura que no sea NULL
-    .query(
-      `UPDATE Recetas
-       SET calorias = @calorias,
-           carbohidratos = @carbohidratos,
-           proteina = @proteinas,
-           grasas = @grasas
-       WHERE id = @recetaId`
-    );
-
-  // Confirmar la transacción
-  await transaction.commit();
-
-  return { id: recipeId };
-} catch (error) {
-  console.error(`Error al crear receta: ${error.message}`);
-  if (transaction) {
-    try {
-      await transaction.rollback();
-    } catch (rollbackError) {
-      console.error(`Error al hacer rollback de la transacción: ${rollbackError.message}`);
-    }
-  }
-  throw error;
-} finally {
-  if (pool) {
-    await pool.close();
-  }
-}
 }
 
 

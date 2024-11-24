@@ -14,5 +14,15 @@ export default class TagsService {
       throw error; // Lanza el error para manejarlo en el controlador
     }
   }
+
+  async buscarTagsId(id) {
+    try {
+      const tags = await  this.TagsRepository.getTagsId(id);
+      return tags;
+    } catch (error) {
+      console.error('Error en el servicio de tags:', error);
+      throw error; // Lanza el error para manejarlo en el controlador
+    }
+  }
 }
   

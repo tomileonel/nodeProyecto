@@ -60,73 +60,102 @@ export default class AuthRepository {
     }
   }
 
-  async editProfile(id, username, name, lastName, phone, email, password, description, img) {
+  async editProfile(id, username, name, lastName, phone, email, description, img, tags) {
+    let transaction;
     try {
-      const pool = await getConnection();
-      const request = pool.request().input('id', sql.Int, id);
-  
-      // Construir dinámicamente la consulta SQL y añadir los parámetros solo si están definidos
-      const setClauses = [];
-  
-      if (username) {
-        setClauses.push('nombreusuario = @username');
-        request.input('username', sql.VarChar, username);
-      }
-      if (name) {
-        setClauses.push('nombre = @name');
-        request.input('name', sql.NVarChar, name);
-      }
-      if (lastName) {
-        setClauses.push('apellido = @lastName');
-        request.input('lastName', sql.NVarChar, lastName);
-      }
-      if (phone) {
-        setClauses.push('telefono = @phone');
-        request.input('phone', sql.BigInt, phone);
-      }
-      if (email) {
-        setClauses.push('mail = @email');
-        request.input('email', sql.VarChar, email);
-      }
-      if (password) {
-        setClauses.push('contrasena = @password');
-        request.input('password', sql.VarChar, password);
-      }
-      if (description) {
-        setClauses.push('descripcion = @description');
-        request.input('description', sql.NVarChar, description);
-      }
-      if (img) {
-        setClauses.push('imagen = @img');
-        request.input('img', sql.VarChar, img);
-      }
-  
-      // Si no hay campos para actualizar, devolver false
-      if (setClauses.length === 0) {
-        console.warn('No hay campos para actualizar');
-        return false;
-      }
-  
-      // Construir la consulta completa de actualización
-      const updateQuery = `
-        UPDATE Usuarios
-        SET ${setClauses.join(', ')}
-        WHERE id = @id
-      `;
-  
-      // Ejecutar la consulta
-      const result = await request.query(updateQuery);
-  
-      // Verificar si se afectó alguna fila (es decir, si el usuario fue actualizado)
-      return result.rowsAffected > 0;
-    } catch (error) {
-      console.error('Error al actualizar perfil:', error);
-      console.log(error)
-      throw error;
-    }
-  }
-  
+        const pool = await getConnection();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin();
 
+        const request = transaction.request().input('id', sql.Int, id);
+
+        const setClauses = [];
+
+        if (username) {
+            setClauses.push('nombreusuario = @username');
+            request.input('username', sql.VarChar, username);
+        }
+        if (name) {
+            setClauses.push('nombre = @name');
+            request.input('name', sql.NVarChar, name);
+        }
+        if (lastName) {
+            setClauses.push('apellido = @lastName');
+            request.input('lastName', sql.NVarChar, lastName);
+        }
+        if (phone) {
+            setClauses.push('telefono = @phone');
+            request.input('phone', sql.BigInt, phone);
+        }
+        if (email) {
+            setClauses.push('mail = @email');
+            request.input('email', sql.VarChar, email);
+        }
+        if (description) {
+            setClauses.push('descripcion = @description');
+            request.input('description', sql.NVarChar, description);
+        }
+        if (img) {
+            setClauses.push('imagen = @img');
+            request.input('img', sql.VarChar, img);
+        }
+
+        let profileUpdated = true;
+        
+        if (setClauses.length > 0) {
+            const updateQuery = `
+                UPDATE Usuarios
+                SET ${setClauses.join(', ')}
+                WHERE id = @id
+            `;
+            const result = await request.query(updateQuery);
+            profileUpdated = result.rowsAffected > 0;
+        }
+
+        let tagsArray = tags;
+        if (typeof tags === 'string') {
+            try {
+                tagsArray = JSON.parse(tags);
+            } catch (e) {
+                tagsArray = [];
+            }
+        }
+
+        const deleteTagsRequest = transaction.request()
+            .input('userId', sql.Int, id);
+        await deleteTagsRequest.query('DELETE FROM TagUsuario WHERE idUsuario = @userId');
+
+        if (!Array.isArray(tagsArray) || tagsArray.length === 0) {
+            await transaction.commit();
+            return profileUpdated;
+        }
+
+        for (const tagId of tagsArray) {
+            const insertQuery = `
+                INSERT INTO TagUsuario (idUsuario, idTag)
+                VALUES (@userId, @tagId)
+            `;
+            
+            await transaction.request()
+                .input('userId', sql.Int, id)
+                .input('tagId', sql.Int, parseInt(tagId))
+                .query(insertQuery);
+        }
+
+        await transaction.commit();
+        return profileUpdated;
+
+    } catch (error) {
+        if (transaction) {
+            try {
+                await transaction.rollback();
+            } catch (rollbackError) {
+                console.error('Error durante el rollback:', rollbackError);
+            }
+        }
+        throw error;
+    }
+}
 
 async getUserById(userId)  {
   try {

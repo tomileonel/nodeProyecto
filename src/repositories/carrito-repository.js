@@ -48,32 +48,42 @@ export default class CarritoRepository {
         }
     }async guardarTarjeta(userId,numero,titular,fechavencimiento,cvv){
         let pool;
-        try{
-            pool = await getConnection()
-            const result = await pool.request()
-            .input('id', sql.Int, userId)
-            .input('numero', sql.BigInt, numero)
-            .input('titular', sql.NVarChar(50), titular)
-            .input('vencimiento', sql.Date, fechavencimiento)
-            .input('cvv', sql.Int, cvv)
-            .query(`INSERT INTO Tarjeta (numero, titular, fechavencimiento, cvv, idTitular)
-VALUES (@numero, @titular, @vencimiento, @cvv, @id)
-RETURNING id; `)
-            return result.recordset
-        }finally{
-            if(pool){
-                await pool.close();
-            }
-        }
-    }async guardarMetodo(userId,tarjeta,efectivo){
+    try {
+    pool = await getConnection();
+
+    // Validar valores
+    if (numero.toString().length > 19) {
+        throw new Error('El número de la tarjeta excede el límite permitido.');
+    }
+    if (cvv < 0 || cvv > 9999) {
+        throw new Error('El CVV debe estar entre 0 y 9999.');
+    }
+
+    const result = await pool.request()
+        .input('id', sql.Int, userId)
+        .input('numero', sql.BigInt, numero) // Asegúrate de que la columna en la tabla sea BIGINT
+        .input('titular', sql.NVarChar(50), titular)
+        .input('vencimiento', sql.Date, fechavencimiento)
+        .input('cvv', sql.Int, cvv) // Asegúrate de que la columna en la tabla sea INT
+        .query(`
+            INSERT INTO Tarjeta (numero, titular, fechavencimiento, cvv, idTitular)
+            OUTPUT INSERTED.id
+            VALUES (@numero, @titular, @vencimiento, @cvv, @id);
+        `);
+
+    return result.recordset;
+    } finally {
+    if (pool) {
+        await pool.close();
+    }
+    }
+    }async userTarjeta(userId){
         let pool;
         try{
-            pool = await getConnection()
+            pool = await getConnection();
             const result = await pool.request()
-            .input('uid', sql.Int, userId)
-            .input('tid', sql.Int, tarjeta)
-            .input('eid', sql.Bit, efectivo)
-            .query(`INSERT INTO FormaPago (efectivo,idTarjeta,idUsuario) VALUES (@eid,@tid,@uid) RETURNING id;`)
+            .input('uid', sql.Int, userId.userId )
+            .query(`SELECT * FROM Tarjeta WHERE idUsuario = @uid`)
             return result.recordset
         }finally{
             if(pool){

@@ -43,11 +43,10 @@ router.post('/GuardarTarjeta/:userId', async (req,res) => {
         res.status(400).json({error:error.message})
     }
 })
-router.post('/SavePaymentMethod/:userId', async (req,res) => {
+router.get('/getTarjetaFromUser/:userId', async (req,res) =>{
     const {userId} = req.params
-    const {tarjeta,efectivo} = req.body
     try {
-        const [data,status] = await carritoService.PaymentMethod(userId,tarjeta,efectivo)
+        const [data,status] = await carritoService.userTarjeta(userId)
         res.status(status).json(data)
     } catch (error) {
         res.status(400).json({error:error.message})

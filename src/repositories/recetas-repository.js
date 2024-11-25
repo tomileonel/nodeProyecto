@@ -372,6 +372,12 @@ DELETE FROM IngredientePorReceta
 		WHERE idreceta =  @id
 		DELETE FROM TagRecetas
 		WHERE idreceta =  @id
+    DELETE FROM Rating
+    WHERE idreceta =   @id
+
+      DELETE FROM Reviews
+    WHERE idreceta =   @id
+
 		DELETE FROM recetas
         WHERE id =  @id
 
@@ -644,10 +650,10 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     let totalGrasas = 0;
     let totalPrecio = 0;
     let totalTime = 0;
-
     for (const paso of pasos) {
       totalTime += paso.duracionMin || 0; 
       const stepRequest = new sql.Request(transaction);
+
       await stepRequest
         .input('recetaId', sql.Int, recipeId)
         .input('nro', sql.Int, paso.numero)
@@ -669,6 +675,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
         throw new Error('La cantidad de ingrediente es inválida o no está presente');
       }
 
+      
       await ingredientRequest
         .input('recetaId', sql.Int, recipeId)
         .input('ingredienteId', sql.Int, ingrediente.id)

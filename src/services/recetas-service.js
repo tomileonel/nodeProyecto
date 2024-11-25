@@ -136,7 +136,7 @@ export default class RecetasService {
       await transaction.begin();
   
       let request = new sql.Request(transaction);
-  
+      
       // Actualizar los datos principales de la receta
       await request
         .input('id', sql.Int, id)
@@ -151,16 +151,22 @@ export default class RecetasService {
           WHERE id = @id
         `);
   
+      // Recalcular las calorías, precio, tiempo y otros valores
+      let totalCalorias = 0;
+      let totalCarbohidratos = 0;
+      let totalProteinas = 0;
+      let totalGrasas = 0;
+      let totalPrecio = 0;
+      let totalTime = 0;
+  
       // Actualizar pasos
       const deleteStepsRequest = new sql.Request(transaction);
       await deleteStepsRequest
         .input('idReceta', sql.Int, id)
-        .query(`
-          DELETE FROM PasosReceta 
-          WHERE idReceta = @idReceta
-        `);
+        .query(`DELETE FROM PasosReceta WHERE idReceta = @idReceta`);
   
       for (const paso of pasos) {
+        totalTime += paso.duracionMin || 0; // Sumar el tiempo de los pasos
         const stepRequest = new sql.Request(transaction);
         await stepRequest
           .input('recetaId', sql.Int, id)
@@ -181,15 +187,14 @@ export default class RecetasService {
       await deleteIngredientsRequest
         .input('idReceta', sql.Int, id)
         .query(`
-        DELETE FROM RecetaCarrito 
-        Where idReceta = @idReceta
-        DELETE FROM Carrito 
-        Where idReceta = @idReceta
-          DELETE FROM IngredientePorReceta 
-          WHERE idReceta = @idReceta
+          DELETE FROM IngredientePorReceta WHERE idReceta = @idReceta
         `);
   
       for (const ingrediente of ingredientes) {
+        if (!ingrediente.cant || ingrediente.cant <= 0) {
+          throw new Error('La cantidad de ingrediente es inválida o no está presente');
+        }
+  
         const ingredientRequest = new sql.Request(transaction);
         await ingredientRequest
           .input('recetaId', sql.Int, id)
@@ -201,16 +206,61 @@ export default class RecetasService {
             VALUES 
             (@recetaId, @ingredienteId, @cant)
           `);
+  
+        // Obtener los valores nutricionales del ingrediente
+        const nutritionRequest = new sql.Request(transaction);
+        const nutricion = await nutritionRequest
+          .input('ingredienteId', sql.Int, ingrediente.id)
+          .query(`
+            SELECT calorias, carbohidratos, proteinas, grasas, precio 
+            FROM Ingredientes 
+            WHERE id = @ingredienteId
+          `);
+  
+        if (nutricion.recordset.length > 0) {
+          const { calorias = 0, carbohidratos = 0, proteinas = 0, grasas = 0, precio = 0 } = nutricion.recordset[0];
+  
+          totalCalorias += (calorias / 100) * ingrediente.cant;
+          totalCarbohidratos += (carbohidratos / 100) * ingrediente.cant;
+          totalProteinas += (proteinas / 100) * ingrediente.cant;
+          totalGrasas += (grasas / 100) * ingrediente.cant;
+          totalPrecio += (precio / 100) * ingrediente.cant;
+        }
       }
+  
+      // Redondeo a dos decimales
+      totalCalorias = parseFloat((totalCalorias).toFixed(2));
+      totalCarbohidratos = parseFloat((totalCarbohidratos).toFixed(2));
+      totalProteinas = parseFloat((totalProteinas).toFixed(2));
+      totalGrasas = parseFloat((totalGrasas).toFixed(2));
+      totalPrecio = parseFloat((totalPrecio).toFixed(2));
+  
+      // Actualizar los valores nutricionales y el tiempo en la receta
+      const updateRequest = new sql.Request(transaction);
+      await updateRequest
+        .input('recetaId', sql.Int, id)
+        .input('calorias', sql.Float, totalCalorias || 0)
+        .input('carbohidratos', sql.Float, totalCarbohidratos || 0)
+        .input('proteinas', sql.Float, totalProteinas || 0)
+        .input('grasas', sql.Float, totalGrasas || 0)
+        .input('precio', sql.Float, totalPrecio || 0)
+        .input('tiempoMins', sql.Float, totalTime || 0)
+        .query(`
+          UPDATE Recetas
+          SET calorias = @calorias,
+              carbohidratos = @carbohidratos,
+              proteina = @proteinas,
+              grasas = @grasas,
+              precio = @precio,
+              tiempoMins = @tiempoMins
+          WHERE id = @recetaId
+        `);
   
       // Actualizar tags
       const deleteTagsRequest = new sql.Request(transaction);
       await deleteTagsRequest
         .input('idReceta', sql.Int, id)
-        .query(`
-          DELETE FROM TagRecetas 
-          WHERE idReceta = @idReceta
-        `);
+        .query(`DELETE FROM TagRecetas WHERE idReceta = @idReceta`);
   
       for (const tag of tags) {
         const tagRequest = new sql.Request(transaction);
@@ -237,6 +287,7 @@ export default class RecetasService {
       }
     }
   }
+  
   
   
   async rateRecipe(rating, recetaId, userId) {

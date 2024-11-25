@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import AuthRepository from '../repositories/auth-repository.js';
 import { generateToken } from '../utils/token.js';
 import jwt from 'jsonwebtoken';
+import e from 'express';
 let tk;
 export default class AuthService {
   
@@ -32,10 +33,24 @@ export default class AuthService {
   async register(username, name, lastName, phone, email, password) {
     try {
       // Verificar si el usuario ya existe
-      const existingUser = await this.authRepository.getUserByEmail(email);
+      // Verificar si el usuario ya existe
+      var existingUser = await this.authRepository.getUserByEmail(email);
       if (existingUser) {
         return [{ message: 'El correo electrónico ya está registrado' }, 400];
       }
+
+
+      var existingUser = await this.authRepository.getUserByPhone(phone);
+      if (existingUser) {
+        return [{ message: 'El telefono ya está registrado' }, 400];
+      }
+
+
+      var existingUser = await this.authRepository.getUserByUsername(username);
+      if (existingUser) {
+        return [{ message: 'El nombre de usario ya está registrado' }, 400];
+      }
+
 
       // Hashear la contraseña antes de guardarla
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -46,7 +61,55 @@ export default class AuthService {
         return [{ message: 'Error al registrar el usuario' }, 500];
       }
 
+
       // Obtener el usuario registrado para generar el token
+      const newUser = await this.authRepository.getUserByEmail(email);
+      if (!newUser) {
+        return [{ message: 'Error al obtener el usuario registrado' }, 500];
+      }
+
+      // Generar el token
+      const token = generateToken(newUser);
+
+      // Retornar respuesta exitosa
+      return [{ message: 'Registro exitoso', token }, 201];
+    } catch (error) {
+      console.error(`Error en el registro: ${error.message}`, error.stack);
+      return [{ message: 'Error en el servidor' }, 500];
+    }
+  }
+
+  async editProfile(id,username, name, lastName, phone, email, password,description,img,tags) {
+
+    //TODO: TERMINAR ESTO
+    try {
+      // Verificar si el usuario ya existe
+      console.log(email)
+      var existingUser = await this.authRepository.getUserByEmail(email);
+
+      if (existingUser  &&  existingUser.id != id) {
+        return [{ message: 'El correo electrónico ya está registrado' }, 400];
+      }
+
+      var existingUser = await this.authRepository.getUserByPhone(phone);
+      if (existingUser  || existingUser.id != id) {
+        return [{ message: 'El telefono ya está registrado ' }, 400];
+      }
+
+      var existingUser = await this.authRepository.getUserByUsername(username);
+      if (existingUser  || existingUser.id != id) {
+        return [{ message: 'El nombre de usario ya está registrado' }, 400];
+      }
+
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Registrar al usuario
+      const isRegisteredSuccessfully = await this.authRepository.editProfile(id,username, name, lastName, phone, email, hashedPassword,description,img,tags);
+      if (!isRegisteredSuccessfully) {
+        return [{ message: 'Error al registrar el usuario' }, 500];
+      }
+
       const newUser = await this.authRepository.getUserByEmail(email);
       if (!newUser) {
         return [{ message: 'Error al obtener el usuario registrado' }, 500];

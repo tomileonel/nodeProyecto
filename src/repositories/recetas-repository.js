@@ -3,51 +3,58 @@ import getConnection from '../configs/db-config.js';
 
 export default class RecetasRepository {
 
-   async getRecipesByTag(userTags) {
+  async getRecipesByTag(userTags) {
     let pool;
     try {
       pool = await getConnection();
-
-      if (userTags.length === 0) {
-        const result = await pool.request().query(`
-          SELECT DISTINCT r.*
-          FROM recetas r
-        `);
-        return result.recordset;
-      }
-
-      const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
-
-      const query = `
-        SELECT r.*
-        FROM recetas r
-        JOIN TagRecetas TR ON TR.idReceta = r.id
-        WHERE TR.idTag IN (${tagPlaceholders})
-        AND r.id IN (
-          SELECT TR2.idReceta
-          FROM TagRecetas TR2
-          WHERE TR2.idTag IN (${tagPlaceholders})
-          GROUP BY TR2.idReceta
-          HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
-        )
-        GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
-                 r.carbohidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
-      `;
-
+  
       const request = pool.request();
-      userTags.forEach((tag, index) => {      
-        request.input(`tag${index}`, sql.Int, tag);
-      });
-      request.input('totalTags', sql.Int, userTags.length);
-
+      let query;
+  
+      if (userTags.length === 0) {
+        // Cuando no se especifican tags, hacemos un SELECT * para obtener todas las recetas
+        query = `
+          SELECT *
+          FROM Recetas
+        `;
+      } else {
+        // Cuando hay tags, se filtra la consulta para devolver solo las recetas con los tags especificados
+        const tagPlaceholders = userTags.map((_, index) => `@tag${index}`).join(', ');
+  
+        query = `
+          SELECT r.*
+          FROM Recetas r
+          JOIN TagRecetas TR ON TR.idReceta = r.id
+          WHERE TR.idTag IN (${tagPlaceholders})
+          AND r.id IN (
+            SELECT TR2.idReceta
+            FROM TagRecetas TR2
+            WHERE TR2.idTag IN (${tagPlaceholders})
+            GROUP BY TR2.idReceta
+            HAVING COUNT(DISTINCT TR2.idTag) = @totalTags
+          )
+          GROUP BY r.id, r.nombre, r.rating, r.imagen, r.idcreador, r.tiempoMins, r.calorias, 
+                   r.carbohidratos, r.proteina, r.grasas, r.precio, r.fechaPublicacion, r.descripcion
+        `;
+  
+        // Añadir los tags como parámetros de la consulta
+        userTags.forEach((tag, index) => {      
+          request.input(`tag${index}`, sql.Int, tag);
+        });
+        request.input('totalTags', sql.Int, userTags.length);
+      }
+  
+      // Ejecutar la consulta y devolver los resultados
       const result = await request.query(query);
       return result.recordset;
+  
     } finally {
       if (pool) {
         await pool.close();
       }
     }
   }
+
   async getFilteredRecipesByPrice({ search, tiempoMax, caloriasMax, ingredientes, tags, precioMin, precioMax }) {
     let query = `
     SELECT DISTINCT r.*
@@ -563,7 +570,7 @@ export default class RecetasRepository {
         throw error;
     }
 }
-async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
+async  createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
   let pool;
   try {
     pool = await getConnection();
@@ -598,15 +605,17 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     let totalProteinas = 0;
     let totalGrasas = 0;
     let totalPrecio = 0;
+    let totalTime = 0;
 
     for (const paso of pasos) {
+      totalTime += paso.duracionMin || 0; 
       const stepRequest = new sql.Request(transaction);
       await stepRequest
         .input('recetaId', sql.Int, recipeId)
         .input('nro', sql.Int, paso.numero)
         .input('titulo', sql.NVarChar(100), paso.titulo)
         .input('descripcion', sql.NVarChar(300), paso.descripcion)
-        .input('duracionMin', sql.Int, paso.duracionMin)
+        .input('duracionMin', sql.Float, paso.duracionMin || 0)
         .query(`
           INSERT INTO PasosReceta 
           (idReceta, nro, titulo, descripcion, duracionMin) 
@@ -661,13 +670,15 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
       .input('proteinas', sql.Float, totalProteinas || 0)
       .input('grasas', sql.Float, totalGrasas || 0)
       .input('precio', sql.Float, totalPrecio || 0)
+      .input('tiempoMins', sql.Float, totalTime || 0) // Añadimos el tiempo total de los pasos
       .query(
         `UPDATE Recetas
          SET calorias = @calorias,
              carbohidratos = @carbohidratos,
              proteina = @proteinas,
              grasas = @grasas,
-             precio = @precio
+             precio = @precio,
+             tiempoMins = @tiempoMins
          WHERE id = @recetaId`
       );
 
@@ -675,10 +686,10 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
       const tagRequest = new sql.Request(transaction);
       await tagRequest
         .input('idTag', sql.Int, tag.id)
-        .input('idUsuario', sql.Int, idcreador)
+        .input('idReceta', sql.Int, recipeId)
         .query(
-          `INSERT INTO TagUsuario (idTag, idUsuario)
-           VALUES (@idTag, @idUsuario)`
+          `INSERT INTO TagRecetas (idTag, idReceta)
+           VALUES (@idTag, @idReceta)`
         );
     }
 
@@ -700,7 +711,6 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     }
   }
 }
-
 
 
 
@@ -785,22 +795,19 @@ async updateRatingReceta(recetaId){
 }
 async getReviews(rid) {
   let pool;
-  
   try {
     pool = await getConnection();
     const result = await pool.request()
     .input('recipeId', sql.Int, rid)  
     .query(`
-    SELECT rev.comentario, rev.fecha, rev.rating rev.id, u.nombreusuario, u.imagen, rec.id,
-    (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
-    (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
-  FROM Reviews rev
-  JOIN Usuarios u ON u.id = rev.idUsuario
-  JOIN Recetas rec ON rec.id = rev.idReceta
-  
-  WHERE rec.id = @recipeId
-  ORDER BY rev.fecha DESC;
-  
+      SELECT rev.comentario, rev.fecha, rev.rating, rev.id, u.nombreusuario, u.imagen, rec.id,
+      (SELECT COUNT(*) FROM Reviews WHERE idReceta = @recipeId) AS total_reviews,
+      (SELECT COUNT (*) FROM Favoritos WHERE idReceta = @recipeId) AS total_bookmarked
+      FROM Reviews rev
+      JOIN Usuarios u ON u.id = rev.idUsuario
+      JOIN Recetas rec ON rec.id = rev.idReceta
+      WHERE rec.id = @recipeId
+      ORDER BY rev.fecha DESC;
     `);
     return result;
   } finally {
@@ -820,7 +827,7 @@ async postComment(rid,uid,msg,date,rating){
     .input('fecha', sql.DateTime, date)
     .input('rating', sql.Int, rating)  
     .query(`
-      INSERT INTO Reviews (comentario,fecha,idUsuario,idReceta) VALUES (@comment, @fecha, @userId,@recipeId)
+      INSERT INTO Reviews (comentario,fecha,rating,idUsuario,idReceta ) VALUES (@comment, @fecha,@rating, @userId,@recipeId)
     `);
     return result;
   } finally {
@@ -835,7 +842,7 @@ async ratingInCommentary(uid){
     pool = await getConnection();
     const result = await pool.request()
     .input('userId', sql.Int, uid)  
-    .query(`SELECT rating FROM Rating WHERE idUsuario = @userId
+    .query(`SELECT * FROM Rating WHERE idUsuario = @userId
     `);
     if(result != null){
       return result.recordset

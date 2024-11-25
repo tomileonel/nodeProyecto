@@ -31,3 +31,14 @@ export const getUserByToken = async (req, res) => {
     res.status(500).json({ message: 'Error en el servidor' });
   }
 };
+
+export const updateUserProfile = async (userId, updateData) => {
+  try {
+    const [updatedRows] = await db.Usuarios.update(updateData, {
+      where: { id: userId },
+    });
+    return updatedRows > 0; // Devuelve true si se actualizó al menos una fila
+  } catch (error) {
+    throw new Error('Error al actualizar el perfil del usuario: ' + error.message);
+  }
+};

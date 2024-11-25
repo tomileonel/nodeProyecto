@@ -3,10 +3,17 @@ import sql from 'mssql';
 
 class IngredientesService {
   async getFilteredIngredientes(searchTerm) {
-    const query = 'SELECT id, nombre AS name FROM ingredientes WHERE nombre LIKE @searchTerm';
+    // Seleccionamos solo los 5 primeros resultados más relevantes
+    const query = `
+      SELECT TOP 5 id, nombre AS name 
+      FROM ingredientes 
+      WHERE nombre LIKE @searchTerm
+      ORDER BY CHARINDEX(@searchTerm, nombre) ASC, nombre
+    `;
     try {
       const pool = await getConnection();
       const request = pool.request();
+      // El patrón de búsqueda incluye los comodines `%` para la consulta LIKE
       request.input('searchTerm', sql.VarChar, `%${searchTerm}%`);
       const result = await request.query(query);
       return result.recordset;

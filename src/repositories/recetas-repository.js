@@ -352,6 +352,44 @@ export default class RecetasRepository {
     }
   };
 
+  async delete(id) {
+    let pool;
+    try {
+      pool = await getConnection();
+      const request = pool.request();
+      
+      request.input('id', id);
+  
+      const query = `
+
+        DELETE FROM RecetaCarrito 
+        Where idReceta = @id
+        DELETE FROM Carrito 
+        Where idReceta = @id
+DELETE FROM IngredientePorReceta
+		WHERE idreceta =  @id
+		DELETE FROM PasosReceta
+		WHERE idreceta =  @id
+		DELETE FROM TagRecetas
+		WHERE idreceta =  @id
+		DELETE FROM recetas
+        WHERE id =  @id
+
+      `;
+  
+      const result = await request.query(query);
+      return result.rowsAffected; 
+    } catch (error) {
+      console.error(`Error al eliminar la receta con id ${id}: ${error}`);
+      throw new Error('Error al eliminar la receta');
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+  
+
   async getRecipesByTagWithUser(tagId, userId) {
     let pool;
     try {
@@ -570,7 +608,7 @@ export default class RecetasRepository {
         throw error;
     }
 }
-async  createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
+async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
   let pool;
   try {
     pool = await getConnection();
@@ -661,6 +699,13 @@ async  createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador,
         totalPrecio += (precio / 100) * ingrediente.cantidad;
       }
     }
+
+    // Redondeo a dos decimales
+    totalCalorias = parseFloat((totalCalorias).toFixed(2));
+    totalCarbohidratos = parseFloat((totalCarbohidratos).toFixed(2));
+    totalProteinas = parseFloat((totalProteinas).toFixed(2));
+    totalGrasas = parseFloat((totalGrasas).toFixed(2));
+    totalPrecio = parseFloat((totalPrecio).toFixed(2));
 
     const updateRequest = new sql.Request(transaction);
     await updateRequest

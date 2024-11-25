@@ -19,5 +19,17 @@ router.get('/', async (req, res) => {
     }
   });
   
+  router.get('/:id', async (req, res) => {
+    try {
+      const { id } = req.params; // Extrae el parámetro 'nombre' de la consulta
+      const tags = await tagsService.buscarTagsId(id); // Usa el servicio aquí
+      console.log('Tags:', tags);
+      res.json(tags);
+    } catch (error) {
+      console.error('Error al obtener los tags:', error);
+      res.status(500).json({ message: 'Error al obtener los tags', error });
+    }
+  });
+  
 
 export default router;

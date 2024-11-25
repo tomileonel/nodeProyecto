@@ -28,4 +28,32 @@ export default class TagsRepository {
           throw error;
         }
       }
-}
+
+
+      async getTagsId(id) {
+        // Define la consulta con JOIN para obtener los tags del usuario
+        let query = `
+            SELECT t.*
+            FROM dbo.Tags t
+            INNER JOIN dbo.TagUsuario tu ON t.id = tu.idTag
+            WHERE tu.idUsuario = @UserId
+        `;
+    
+        // Inicializa la conexión y solicitud
+        const pool = await getConnection();
+        const request = pool.request();
+    
+        // Agrega el parámetro IdUsuario
+        request.input('UserId', sql.Int, id);
+    
+        try {
+            console.log(query);
+            // Ejecuta la consulta
+            const result = await request.query(query);
+            return result.recordset;
+        } catch (error) {
+            console.error('Error al obtener los tags:', error);
+            throw error;
+        }
+    }
+  }

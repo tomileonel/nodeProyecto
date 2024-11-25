@@ -5,7 +5,7 @@ class IngredientesService {
   async getFilteredIngredientes(searchTerm) {
     // Seleccionamos solo los 5 primeros resultados más relevantes
     const query = `
-      SELECT TOP 5 id, nombre AS name 
+      SELECT TOP 5 id, nombre , calorias 
       FROM ingredientes 
       WHERE nombre LIKE @searchTerm
       ORDER BY CHARINDEX(@searchTerm, nombre) ASC, nombre

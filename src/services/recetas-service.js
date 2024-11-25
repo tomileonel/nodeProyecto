@@ -1,5 +1,6 @@
 import RecetasRepository from '../repositories/recetas-repository.js';
-
+import sql from 'mssql';
+import getConnection from '../configs/db-config.js';
 export default class RecetasService {
   constructor() {
     this.recetasRepository = new RecetasRepository();
@@ -79,9 +80,7 @@ export default class RecetasService {
   async getRecipesByTagWithUser(tagId, userId) {
     try {
       const recipes = await this.recetasRepository.getRecipesByTagWithUser(tagId, userId);
-      if (recipes.length === 0) {
-        return ["No se encuentran recetas para la categoría seleccionada", 404];
-      }
+
       return [recipes, 200];
     } catch (error) {
       console.error(`Error fetching recipes by tag and user: ${error}`);
@@ -165,7 +164,7 @@ export default class RecetasService {
         const stepRequest = new sql.Request(transaction);
         await stepRequest
           .input('recetaId', sql.Int, id)
-          .input('nro', sql.Int, paso.numero)
+          .input('nro', sql.Int, paso.nro)
           .input('titulo', sql.NVarChar(100), paso.titulo)
           .input('descripcion', sql.NVarChar(300), paso.descripcion)
           .input('duracionMin', sql.Float, paso.duracionMin || 0)
@@ -195,7 +194,7 @@ export default class RecetasService {
         await ingredientRequest
           .input('recetaId', sql.Int, id)
           .input('ingredienteId', sql.Int, ingrediente.id)
-          .input('cant', sql.Float, ingrediente.cantidad)
+          .input('cant', sql.Float, ingrediente.cant)
           .query(`
             INSERT INTO IngredientePorReceta 
             (idReceta, idIngrediente, cant) 

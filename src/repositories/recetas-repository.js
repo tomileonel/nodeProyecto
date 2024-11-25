@@ -352,6 +352,44 @@ export default class RecetasRepository {
     }
   };
 
+  async delete(id) {
+    let pool;
+    try {
+      pool = await getConnection();
+      const request = pool.request();
+      
+      request.input('id', id);
+  
+      const query = `
+
+        DELETE FROM RecetaCarrito 
+        Where idReceta = @id
+        DELETE FROM Carrito 
+        Where idReceta = @id
+DELETE FROM IngredientePorReceta
+		WHERE idreceta =  @id
+		DELETE FROM PasosReceta
+		WHERE idreceta =  @id
+		DELETE FROM TagRecetas
+		WHERE idreceta =  @id
+		DELETE FROM recetas
+        WHERE id =  @id
+
+      `;
+  
+      const result = await request.query(query);
+      return result.rowsAffected; 
+    } catch (error) {
+      console.error(`Error al eliminar la receta con id ${id}: ${error}`);
+      throw new Error('Error al eliminar la receta');
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+  
+
   async getRecipesByTagWithUser(tagId, userId) {
     let pool;
     try {

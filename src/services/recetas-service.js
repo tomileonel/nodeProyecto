@@ -66,6 +66,16 @@ export default class RecetasService {
     }
   };
 
+  async delete (id) {
+    try {
+      const res = await this.recetasRepository.delete(id);
+      return [res, 200];
+    } catch (error) {
+      console.error(`Error al eliminar: ${error}`);
+      return [[], 500];
+    }
+  };
+
   async getRecipesByTagWithUser(tagId, userId) {
     try {
       const recipes = await this.recetasRepository.getRecipesByTagWithUser(tagId, userId);

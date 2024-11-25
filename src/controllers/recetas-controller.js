@@ -179,6 +179,36 @@ router.post('/create', upload.single('imagen'), async (req, res) => {
   }
 });
 
+router.put('/edit/:id', upload.single('imagen'), async (req, res) => {
+  const { id } = req.params; // ID de la receta a editar
+  const { nombre, descripcion, ingredientes, pasos, tags, idcreador } = req.body;
+
+  // Verifica si la imagen ha sido subida y construye la ruta
+  const imagen = req.file ? `/img/${req.file.filename}` : null;
+
+  if (!id || !idcreador) {
+    return res.status(400).json({ message: 'El ID de la receta y del creador son obligatorios' });
+  }
+
+  try {
+    const result = await recetasService.editRecipe({
+      id,
+      nombre,
+      descripcion,
+      ingredientes: JSON.parse(ingredientes),
+      pasos: JSON.parse(pasos),
+      tags: JSON.parse(tags),
+      idcreador,
+      imagen
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error al editar receta:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 router.post('/rate/:rating/:idReceta/:idUsuario',  async (req,res) => {
 // In the controller

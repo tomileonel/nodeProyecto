@@ -128,6 +128,117 @@ export default class RecetasService {
       throw new Error('Error al crear receta.');
     }
   }
+
+  async editRecipe({ id, nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
+    let pool;
+    try {
+      pool = await getConnection();
+      const transaction = new sql.Transaction(pool);
+      await transaction.begin();
+  
+      let request = new sql.Request(transaction);
+  
+      // Actualizar los datos principales de la receta
+      await request
+        .input('id', sql.Int, id)
+        .input('nombre', sql.NVarChar(50), nombre)
+        .input('descripcion', sql.NVarChar(100), descripcion || "")
+        .input('imagen', sql.NVarChar(300), imagen || "")
+        .query(`
+          UPDATE Recetas 
+          SET nombre = @nombre, 
+              descripcion = @descripcion, 
+              imagen = @imagen
+          WHERE id = @id
+        `);
+  
+      // Actualizar pasos
+      const deleteStepsRequest = new sql.Request(transaction);
+      await deleteStepsRequest
+        .input('idReceta', sql.Int, id)
+        .query(`
+          DELETE FROM PasosReceta 
+          WHERE idReceta = @idReceta
+        `);
+  
+      for (const paso of pasos) {
+        const stepRequest = new sql.Request(transaction);
+        await stepRequest
+          .input('recetaId', sql.Int, id)
+          .input('nro', sql.Int, paso.numero)
+          .input('titulo', sql.NVarChar(100), paso.titulo)
+          .input('descripcion', sql.NVarChar(300), paso.descripcion)
+          .input('duracionMin', sql.Float, paso.duracionMin || 0)
+          .query(`
+            INSERT INTO PasosReceta 
+            (idReceta, nro, titulo, descripcion, duracionMin) 
+            VALUES 
+            (@recetaId, @nro, @titulo, @descripcion, @duracionMin)
+          `);
+      }
+  
+      // Actualizar ingredientes
+      const deleteIngredientsRequest = new sql.Request(transaction);
+      await deleteIngredientsRequest
+        .input('idReceta', sql.Int, id)
+        .query(`
+        DELETE FROM RecetaCarrito 
+        Where idReceta = @idReceta
+        DELETE FROM Carrito 
+        Where idReceta = @idReceta
+          DELETE FROM IngredientePorReceta 
+          WHERE idReceta = @idReceta
+        `);
+  
+      for (const ingrediente of ingredientes) {
+        const ingredientRequest = new sql.Request(transaction);
+        await ingredientRequest
+          .input('recetaId', sql.Int, id)
+          .input('ingredienteId', sql.Int, ingrediente.id)
+          .input('cant', sql.Float, ingrediente.cantidad)
+          .query(`
+            INSERT INTO IngredientePorReceta 
+            (idReceta, idIngrediente, cant) 
+            VALUES 
+            (@recetaId, @ingredienteId, @cant)
+          `);
+      }
+  
+      // Actualizar tags
+      const deleteTagsRequest = new sql.Request(transaction);
+      await deleteTagsRequest
+        .input('idReceta', sql.Int, id)
+        .query(`
+          DELETE FROM TagRecetas 
+          WHERE idReceta = @idReceta
+        `);
+  
+      for (const tag of tags) {
+        const tagRequest = new sql.Request(transaction);
+        await tagRequest
+          .input('idTag', sql.Int, tag.id)
+          .input('idReceta', sql.Int, id)
+          .query(`
+            INSERT INTO TagRecetas (idTag, idReceta) 
+            VALUES (@idTag, @idReceta)
+          `);
+      }
+  
+      await transaction.commit();
+      return { message: 'Receta actualizada con éxito' };
+    } catch (error) {
+      console.error(`Error al editar receta: ${error.message}`);
+      if (transaction) {
+        await transaction.rollback();
+      }
+      throw error;
+    } finally {
+      if (pool) {
+        await pool.close();
+      }
+    }
+  }
+  
   
   async rateRecipe(rating, recetaId, userId) {
     try {

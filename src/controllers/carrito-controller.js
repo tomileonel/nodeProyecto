@@ -33,6 +33,26 @@ router.delete('/DeleteCarrito/:id', async (req,res) => {
         res.status(400).json({error:error.message})
     }
 })
-router.delete('/deleteCarrito/:carritoId')
+router.post('/GuardarTarjeta/:userId', async (req,res) => {
+    const {userId} = req.params
+    const {numero,titular,fechavencimiento,cvv} = req.body
+    try {
+        const [data,status] = await carritoService.guardarTarjeta(userId,numero,titular,fechavencimiento,cvv)
+        res.status(status).json(data)
+    } catch (error) {
+        res.status(400).json({error:error.message})
+    }
+})
+router.post('/SavePaymentMethod/:userId', async (req,res) => {
+    const {userId} = req.params
+    const {tarjeta,efectivo} = req.body
+    try {
+        const [data,status] = await carritoService.PaymentMethod(userId,tarjeta,efectivo)
+        res.status(status).json(data)
+    } catch (error) {
+        res.status(400).json({error:error.message})
+    }
+})
+
 
 export default router;

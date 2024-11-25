@@ -241,7 +241,6 @@ export default class RecetasService {
   
   async rateRecipe(rating, recetaId, userId) {
     try {
-      console.log("bolas nro°",userId)
       const result = await this.recetasRepository.rateReceta({ rating, recetaId, userId });
       
       return { recipe: result, status: 200 };

@@ -31,7 +31,25 @@ async deleteFromCarrito(id){
         console.error(`No se pudo borrar la receta del carrito, error: ${error}`)
         return ["No se pudo borrar la receta", 400]
     }
+}async guardarTarjeta(userId,numero,titular,fechavencimiento,cvv){
+    try {
+        const result = await this.carritoRepository.guardarTarjeta(userId,numero,titular,fechavencimiento,cvv)
+        return[`guardado efectivamente, ${result}`, 200]
+    } catch (error) {
+        console.error(`No se pudo guardar la tarjeta, error: ${error}`)
+        return ["No se pudo guardar la tarjeta", 400]
+    }
 }
+async PaymentMethod(userId,tarjeta,efectivo) {
+    try {
+        const result = await this.carritoRepository.guardarMetodo(userId,tarjeta,efectivo)
+        return[`guardado efectivamente, ${result}`, 200]
+    } catch (error) {
+        console.error(`No se pudo guardar el metodo de pago, error: ${error}`)
+        return ["No se pudo guardar el metodo de pago", 400]
+    }
+}
+
   
 }
   

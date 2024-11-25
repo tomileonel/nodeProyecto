@@ -164,9 +164,9 @@ export default class RecetasService {
       await deleteStepsRequest
         .input('idReceta', sql.Int, id)
         .query(`DELETE FROM PasosReceta WHERE idReceta = @idReceta`);
-  
       for (const paso of pasos) {
         totalTime += paso.duracionMin || 0; // Sumar el tiempo de los pasos
+        
         const stepRequest = new sql.Request(transaction);
         await stepRequest
           .input('recetaId', sql.Int, id)

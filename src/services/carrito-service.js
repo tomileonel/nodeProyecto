@@ -16,7 +16,16 @@ export default class CarritoService {
 }
 async InsertIntoCarrito(recetaId,userId){
     try {
-        const result = await this.carritoRepository.insertRecetaCarrito(userId,recetaId);
+        const result = await this.carritoRepository.insertCarrito(userId,recetaId);
+        return [result,201]
+    } catch (error) {
+        console.error(`No se pudo insertar en el carrito, error: ${error}`)
+        return ["No se pudo insertar en el carrito", 409]
+    }
+}
+async RecetaCarrito(recetaId,userId){
+    try {
+        const result = await this.carritoRepository.RecetaCarrito(userId,recetaId);
         return [result,201]
     } catch (error) {
         console.error(`No se pudo insertar en el carrito, error: ${error}`)
@@ -41,7 +50,17 @@ async deleteFromCarrito(id){
     }
 }async userTarjeta(userId){
     try {
-        const result = await this.carritoRepository.userTarjeta(userId,numero,titular,fechavencimiento,cvv)
+        console.log(userId)
+        const result = await this.carritoRepository.userTarjeta(userId)
+        console.log(result)
+        return[`${result}`, 200]
+    } catch (error) {
+        console.error(`No se pudo conseguir la tarjeta, error: ${error}`)
+        return ["No se pudo conseguir la tarjeta", 400]
+    }
+}async pagarPedido(userId,recetaId,idTarjeta,fechapedido,fechaentrega,precio){
+    try {
+        const result = await this.carritoRepository.pagarPedido(userId,recetaId,idTarjeta,fechapedido,fechaentrega,precio)
         return[`${result}`, 200]
     } catch (error) {
         console.error(`No se pudo conseguir la tarjeta, error: ${error}`)

@@ -18,7 +18,8 @@ export default class CarritoRepository {
             }
         }
     }
-    async insertRecetaCarrito(userId,recetaId){
+
+    async insertCarrito(userId,recetaId){
         let pool;
         try{
             pool = await getConnection();
@@ -32,7 +33,22 @@ export default class CarritoRepository {
                 await pool.close();
             }
         }
+    }async RecetaCarrito(userId,recetaId){
+        let pool;
+        try{
+            pool = await getConnection();
+            const result = await pool.request()
+            .input('uid', sql.Int, userId)
+            .input('rid', sql.Int, recetaId)
+            .query(`INSERT INTO RecetaCarrito (idReceta,idUsuario) VALUES (@rid, @uid)`)
+            return result.recordset
+        }finally{
+            if(pool){
+                await pool.close();
+            }
+        }
     }
+    
     async deleteRecetaCarrito(id){
         let pool;
         try{
@@ -77,19 +93,48 @@ export default class CarritoRepository {
         await pool.close();
     }
     }
-    }async userTarjeta(userId){
+    }async userTarjeta(userId) {
+       
         let pool;
-        try{
+        try {
             pool = await getConnection();
             const result = await pool.request()
-            .input('uid', sql.Int, userId.userId )
-            .query(`SELECT * FROM Tarjeta WHERE idUsuario = @uid`)
-            return result.recordset
-        }finally{
-            if(pool){
+                .input('uid', sql.Int, userId)
+                .query(`SELECT * FROM Tarjeta WHERE idTitular = @uid`);
+            
+            if (result.recordset.length === 0) {
+                throw new Error("No se encontraron tarjetas para el usuario especificado.");
+            }
+            
+            return result.recordset;
+        } finally {
+            if (pool) {
                 await pool.close();
             }
         }
+        
     }
-    
-}
+    async pagarPedio(userId,recetaId,idTarjeta,fechapedido,fechaentrega,precio){
+        let pool;
+        try {
+        pool = await getConnection();
+        const result = await pool.request()
+        .input('id', sql.Int, idTarjeta)
+        .input('pedido', sql.DateTime, fechapedido)
+        .input('entrega', sql.DateTime, fechaentrega)
+        .input('precio', sql.Int, precio)
+        .input('usuario', sql.Int, userId) 
+        .input('receta', sql.Int, recetaId)
+        .query(`
+            INSERT INTO Pedido (idTarjeta, fechapedido, fechaentrega, precio, idUsuario, idRecetaCarrito)
+            OUTPUT INSERTED.id
+            VALUES (@id, @pedido, @tarjeta, @precio, @usuario, @receta);
+        `);
+        return result.recordset;
+    } finally {
+    if (pool) {
+        await pool.close();
+    }
+    }
+    }
+    }

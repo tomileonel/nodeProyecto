@@ -671,7 +671,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
     for (const ingrediente of ingredientes) {
       const ingredientRequest = new sql.Request(transaction);
 
-      if (!ingrediente.cantidad || ingrediente.cantidad <= 0) {
+      if (!ingrediente.cant || ingrediente.cant <= 0) {
         throw new Error('La cantidad de ingrediente es inválida o no está presente');
       }
 
@@ -679,7 +679,7 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
       await ingredientRequest
         .input('recetaId', sql.Int, recipeId)
         .input('ingredienteId', sql.Int, ingrediente.id)
-        .input('cant', sql.Float, ingrediente.cantidad)
+        .input('cant', sql.Float, ingrediente.cant)
         .query(
           `INSERT INTO IngredientePorReceta 
             (idReceta, idIngrediente, cant) 
@@ -699,11 +699,11 @@ async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, 
       if (nutricion.recordset.length > 0) {
         const { calorias = 0, carbohidratos = 0, proteinas = 0, grasas = 0, precio = 0 } = nutricion.recordset[0];
 
-        totalCalorias += (calorias / 100) * ingrediente.cantidad;
-        totalCarbohidratos += (carbohidratos / 100) * ingrediente.cantidad;
-        totalProteinas += (proteinas / 100) * ingrediente.cantidad;
-        totalGrasas += (grasas / 100) * ingrediente.cantidad;
-        totalPrecio += (precio / 100) * ingrediente.cantidad;
+        totalCalorias += (calorias / 100) * ingrediente.cant;
+        totalCarbohidratos += (carbohidratos / 100) * ingrediente.cant;
+        totalProteinas += (proteinas / 100) * ingrediente.cant;
+        totalGrasas += (grasas / 100) * ingrediente.cant;
+        totalPrecio += (precio / 100) * ingrediente.cant;
       }
     }
 

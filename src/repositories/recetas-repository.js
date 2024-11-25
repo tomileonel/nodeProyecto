@@ -570,7 +570,7 @@ export default class RecetasRepository {
         throw error;
     }
 }
-async  createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
+async createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador, imagen }) {
   let pool;
   try {
     pool = await getConnection();
@@ -661,6 +661,13 @@ async  createRecipe({ nombre, descripcion, ingredientes, pasos, tags, idcreador,
         totalPrecio += (precio / 100) * ingrediente.cantidad;
       }
     }
+
+    // Redondeo a dos decimales
+    totalCalorias = parseFloat((totalCalorias).toFixed(2));
+    totalCarbohidratos = parseFloat((totalCarbohidratos).toFixed(2));
+    totalProteinas = parseFloat((totalProteinas).toFixed(2));
+    totalGrasas = parseFloat((totalGrasas).toFixed(2));
+    totalPrecio = parseFloat((totalPrecio).toFixed(2));
 
     const updateRequest = new sql.Request(transaction);
     await updateRequest

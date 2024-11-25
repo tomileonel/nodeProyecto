@@ -94,6 +94,16 @@ router.get('/specialTags', async (req, res) => {
   }
 });
 
+router.delete('/delete/:id', async (req, res) => {
+  const {id} = req.params
+  try {
+    const [response,status] = await recetasService.delete(id);
+    res.status(status).json(response);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Ruta para obtener recetas por etiqueta y usuario
 router.get('/recipesByTag/:tagId/:userId', async (req, res) => {
   const { tagId, userId } = req.params;
